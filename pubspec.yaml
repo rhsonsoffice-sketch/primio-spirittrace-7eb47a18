@@ -66,7 +66,7 @@ dependencies:
   # PRIMIO_ADDED: speech_to_text — real-time speech recognition for spirit response detection
   speech_to_text: ^7.0.0
   # PRIMIO_ADDED: record — audio recording during investigation response windows
-  record: ^5.2.0
+  record: ^6.2.1
   # PRIMIO_ADDED: just_audio — playback of recorded investigation audio clips
   just_audio: ^0.9.42
   # PRIMIO_ADDED: sensors_plus — real device motion input for the Trace Field
