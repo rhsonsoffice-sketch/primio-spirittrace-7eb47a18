@@ -9,7 +9,7 @@ import 'providers/locale_provider.dart';
 import 'repositories/investigation_repository.dart';
 import 'router/app_router.dart';
 import 'theme/theme.dart';
-
+import 'services/purchase_service.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
