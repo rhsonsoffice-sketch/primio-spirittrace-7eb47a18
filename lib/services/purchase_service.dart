@@ -9,31 +9,50 @@ static const String proProductId = 'com.spirittrace.pro';
 final InAppPurchase _inAppPurchase = InAppPurchase.instance;
 
 ProductDetails? _proProduct;
+
 bool _isAvailable = false;
 bool _isPro = false;
 bool _isLoading = false;
 
-StreamSubscription<List<PurchaseDetails>>? _subscription;
+StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
 
 ProductDetails? get proProduct => _proProduct;
+
 bool get isAvailable => _isAvailable;
+
 bool get isPro => _isPro;
+
 bool get isLoading => _isLoading;
 
 PurchaseService() {
-_subscription = _inAppPurchase.purchaseStream.listen(
-_handlePurchaseUpdates,
-onDone: () => _subscription?.cancel(),
-onError: (error) {
-debugPrint('Purchase stream error: $error');
-},
-);
-
+_listenForPurchases();
 initialise();
 }
 
+// ------------------------------------------------------------
+// PURCHASE LISTENER
+// ------------------------------------------------------------
+
+void _listenForPurchases() {
+_purchaseSubscription = _inAppPurchase.purchaseStream.listen(
+_handlePurchaseUpdates,
+onError: (Object error) {
+debugPrint('SPIRIT TRACE purchase stream error: $error');
+},
+onDone: () {
+_purchaseSubscription?.cancel();
+},
+);
+}
+
+// ------------------------------------------------------------
+// INITIALISE
+// ------------------------------------------------------------
+
 Future<void> initialise() async {
-if (_isLoading) return;
+if (_isLoading) {
+return;
+}
 
 _isLoading = true;
 notifyListeners();
@@ -42,44 +61,48 @@ try {
 _isAvailable = await _inAppPurchase.isAvailable();
 
 if (!_isAvailable) {
-debugPrint('In-app purchases are not available.');
+debugPrint(
+'SPIRIT TRACE: In-app purchases are unavailable.',
+);
 return;
 }
 
-final response = await _inAppPurchase.queryProductDetails(
-{proProductId},
+final ProductDetailsResponse response =
+await _inAppPurchase.queryProductDetails(
+<String>{proProductId},
 );
 
 if (response.error != null) {
 debugPrint(
-'Product query error: ${response.error}',
+'SPIRIT TRACE product query error: '
+'${response.error}',
 );
 return;
 }
 
-if (response.productDetails.isNotEmpty) {
-_proProduct = response.productDetails.first;
-
+if (response.productDetails.isEmpty) {
 debugPrint(
-'Found Spirit Trace Pro: '
-'${_proProduct!.id} '
-'${_proProduct!.price}',
+'SPIRIT TRACE PRO product was not found.',
 );
-} else {
-debugPrint('Spirit Trace Pro product was not found.');
+return;
 }
 
-/*
-* Do NOT automatically call restorePurchases() here.
-*
-* Restore is deliberately user initiated from Settings.
-*
-* The purchase stream is still listened to continuously so that
-* purchases/restores update entitlement while the app is running.
-*/
+for (final ProductDetails product in response.productDetails) {
+if (product.id == proProductId) {
+_proProduct = product;
+
+debugPrint(
+'SPIRIT TRACE PRO found: '
+'${product.id} '
+'${product.price}',
+);
+
+break;
+}
+}
 } catch (e) {
 debugPrint(
-'Purchase initialisation error: $e',
+'SPIRIT TRACE purchase initialisation error: $e',
 );
 } finally {
 _isLoading = false;
@@ -87,40 +110,66 @@ notifyListeners();
 }
 }
 
-Future<void> buyPro() async {
-if (_isLoading) return;
+// ------------------------------------------------------------
+// BUY PRO
+// ------------------------------------------------------------
 
-if (_proProduct == null) {
+Future<void> buyPro() async {
+if (_isLoading) {
+return;
+}
+
+if (!_isAvailable) {
 await initialise();
 }
 
 if (_proProduct == null) {
 debugPrint(
-'Spirit Trace Pro product is unavailable.',
+'SPIRIT TRACE PRO product is unavailable.',
 );
 return;
 }
 
-final purchaseParam = PurchaseParam(
+try {
+final PurchaseParam purchaseParam = PurchaseParam(
 productDetails: _proProduct!,
+);
+
+debugPrint(
+'SPIRIT TRACE: Starting PRO purchase.',
 );
 
 await _inAppPurchase.buyNonConsumable(
 purchaseParam: purchaseParam,
 );
+} catch (e) {
+debugPrint(
+'SPIRIT TRACE PRO purchase error: $e',
+);
+}
 }
 
+// ------------------------------------------------------------
+// RESTORE PURCHASE
+// ------------------------------------------------------------
+
 Future<void> restorePurchases() async {
-if (_isLoading) return;
+if (_isLoading) {
+return;
+}
 
 try {
 _isLoading = true;
 notifyListeners();
 
+debugPrint(
+'SPIRIT TRACE: Restoring purchases.',
+);
+
 await _inAppPurchase.restorePurchases();
 } catch (e) {
 debugPrint(
-'Restore purchases error: $e',
+'SPIRIT TRACE restore error: $e',
 );
 } finally {
 _isLoading = false;
@@ -128,16 +177,20 @@ notifyListeners();
 }
 }
 
+// ------------------------------------------------------------
+// HANDLE PURCHASE UPDATES
+// ------------------------------------------------------------
+
 Future<void> _handlePurchaseUpdates(
 List<PurchaseDetails> purchases,
 ) async {
-for (final purchase in purchases) {
+for (final PurchaseDetails purchase in purchases) {
 if (purchase.productID != proProductId) {
 continue;
 }
 
 debugPrint(
-'Spirit Trace Pro purchase status: '
+'SPIRIT TRACE PRO purchase status: '
 '${purchase.status}',
 );
 
@@ -152,20 +205,20 @@ break;
 
 case PurchaseStatus.pending:
 debugPrint(
-'Spirit Trace Pro purchase is pending.',
+'SPIRIT TRACE PRO purchase is pending.',
 );
 break;
 
 case PurchaseStatus.error:
 debugPrint(
-'Spirit Trace Pro purchase error: '
+'SPIRIT TRACE PRO purchase error: '
 '${purchase.error}',
 );
 break;
 
 case PurchaseStatus.canceled:
 debugPrint(
-'Spirit Trace Pro purchase cancelled.',
+'SPIRIT TRACE PRO purchase was cancelled.',
 );
 break;
 }
@@ -173,7 +226,7 @@ break;
 /*
 * IMPORTANT:
 *
-* Unlock entitlement BEFORE completing the transaction.
+* PRO is unlocked BEFORE the transaction is completed.
 */
 if (purchase.pendingCompletePurchase) {
 await _inAppPurchase.completePurchase(
@@ -183,8 +236,14 @@ purchase,
 }
 }
 
+// ------------------------------------------------------------
+// UNLOCK PRO
+// ------------------------------------------------------------
+
 void _unlockPro() {
-if (_isPro) return;
+if (_isPro) {
+return;
+}
 
 _isPro = true;
 
@@ -195,10 +254,32 @@ debugPrint(
 notifyListeners();
 }
 
+// ------------------------------------------------------------
+// MANUAL ENTITLEMENT RESET
+// ------------------------------------------------------------
+//
+// This is deliberately private.
+// The app should never allow a normal user action to turn PRO off.
+//
+
+void _lockPro() {
+if (!_isPro) {
+return;
+}
+
+_isPro = false;
+notifyListeners();
+}
+
+// ------------------------------------------------------------
+// CLEAN UP
+// ------------------------------------------------------------
+
 @override
 void dispose() {
-_subscription?.cancel();
+_purchaseSubscription?.cancel();
 super.dispose();
 }
 }
+
 
