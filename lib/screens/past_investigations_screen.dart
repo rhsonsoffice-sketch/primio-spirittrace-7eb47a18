@@ -28,7 +28,9 @@ leading: IconButton(
 icon: const Icon(Icons.arrow_back),
 onPressed: () => context.go('/'),
 ),
-title: Text(context.l10n.t('pastInvestigations')),
+title: Text(
+context.l10n.t('pastInvestigations'),
+),
 ),
 body: provider.isLoading
 ? const Center(
@@ -61,7 +63,8 @@ color: appColors.subtleText,
 children: [
 if (!purchase.isPro)
 _FreeHistoryNotice(
-onUpgrade: () => _showProDialog(context),
+onUpgrade: () =>
+_showProDialog(context),
 ),
 Expanded(
 child: ListView.separated(
@@ -78,17 +81,12 @@ itemBuilder: (context, index) {
 final inv =
 provider.investigations[index];
 
-/*
-* IMPORTANT:
-*
-* Pattern analysis is a PRO feature.
-*
-* FREE users receive an empty pattern list
-* here, so the screen cannot expose the
-* historical pattern analysis.
-*/
+// Pattern analysis is PRO.
 final patterns = purchase.isPro
-? provider.patternsFor(inv)
+? provider.patternsFor(
+context,
+inv,
+)
 : <PatternResult>[];
 
 return Dismissible(
@@ -138,8 +136,10 @@ width:
 AppTheme.spacingSm,
 ),
 Text(
-context.l10n.t('delete'),
-style: text.labelMedium
+context.l10n
+.t('delete'),
+style: text
+.labelMedium
 ?.copyWith(
 color:
 appColors.danger,
@@ -178,14 +178,18 @@ inv.id,
 );
 }
 
-static void _showProDialog(BuildContext context) {
+static void _showProDialog(
+BuildContext context,
+) {
 showDialog<void>(
 context: context,
 builder: (dialogContext) {
 return AlertDialog(
-title: const Text('SPIRIT TRACE PRO'),
+title: const Text(
+'SPIRIT TRACE PRO',
+),
 content: const Text(
-'Unlock the advanced investigation system.\n\n'
+'Unlock the full SPIRIT TRACE analysis system.\n\n'
 'PRO includes:\n\n'
 '• Trace Memory\n'
 '• Pattern Detection\n'
@@ -194,20 +198,25 @@ content: const Text(
 '• Full Trace Field & Trace Pulse\n'
 '• Environmental Analysis\n'
 '• Full Case Files\n'
-'• Unlimited saved investigations',
+'• Unlimited saved investigations\n'
+'• Full historical analysis',
 ),
 actions: [
 TextButton(
 onPressed: () =>
 Navigator.of(dialogContext).pop(),
-child: const Text('NOT NOW'),
+child: const Text(
+'NOT NOW',
+),
 ),
 ElevatedButton(
 onPressed: () {
 Navigator.of(dialogContext).pop();
 context.go('/settings');
 },
-child: const Text('UNLOCK PRO'),
+child: const Text(
+'UNLOCK PRO',
+),
 ),
 ],
 );
@@ -373,14 +382,17 @@ PopupMenuButton<String>(
 icon: Icon(
 Icons.more_horiz,
 size: AppTheme.iconMd,
-color: appColors.subtleText,
+color:
+appColors.subtleText,
 ),
 onSelected: (_) => onDelete(),
 itemBuilder: (_) => [
 PopupMenuItem<String>(
 value: 'delete',
 child: Text(
-context.l10n.t('deleteMenu'),
+context.l10n.t(
+'deleteMenu',
+),
 ),
 ),
 ],
@@ -424,13 +436,6 @@ color:
 colors.secondary,
 ),
 
-/*
-* FREE:
-* Patterns are locked.
-*
-* PRO:
-* Actual pattern count is displayed.
-*/
 if (isPro)
 _Stat(
 label:
@@ -452,7 +457,8 @@ appColors.glow,
 ],
 ),
 
-if (isPro && patterns.isNotEmpty) ...[
+if (isPro &&
+patterns.isNotEmpty) ...[
 const SizedBox(
 height: AppTheme.spacingSm,
 ),
@@ -512,8 +518,8 @@ Expanded(
 child: Text(
 'Pattern analysis and connections '
 'are available with PRO.',
-style:
-text.labelSmall?.copyWith(
+style: text.labelSmall
+?.copyWith(
 color:
 appColors.subtleText,
 ),
@@ -598,4 +604,5 @@ color: color,
 );
 }
 }
+
 
