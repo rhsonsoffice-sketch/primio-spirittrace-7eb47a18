@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PurchaseService extends ChangeNotifier {
 static const String proProductId = 'com.spirittrace.pro';
+static const String _proOwnedKey = 'spirit_trace_pro_owned';
 
 final InAppPurchase _inAppPurchase = InAppPurchase.instance;
 
@@ -13,31 +15,33 @@ ProductDetails? _proProduct;
 bool _isAvailable = false;
 bool _isPro = false;
 bool _isLoading = false;
+bool _initialised = false;
 
 StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
 
 ProductDetails? get proProduct => _proProduct;
-
 bool get isAvailable => _isAvailable;
-
 bool get isPro => _isPro;
-
 bool get isLoading => _isLoading;
+bool get initialised => _initialised;
 
 PurchaseService() {
 _listenForPurchases();
 initialise();
 }
 
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // PURCHASE LISTENER
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 void _listenForPurchases() {
-_purchaseSubscription = _inAppPurchase.purchaseStream.listen(
+_purchaseSubscription =
+_inAppPurchase.purchaseStream.listen(
 _handlePurchaseUpdates,
 onError: (Object error) {
-debugPrint('SPIRIT TRACE purchase stream error: $error');
+debugPrint(
+'SPIRIT TRACE purchase stream error: $error',
+);
 },
 onDone: () {
 _purchaseSubscription?.cancel();
@@ -45,12 +49,12 @@ _purchaseSubscription?.cancel();
 );
 }
 
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // INITIALISE
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> initialise() async {
-if (_isLoading) {
+if (_isLoading || _initialised) {
 return;
 }
 
@@ -58,7 +62,25 @@ _isLoading = true;
 notifyListeners();
 
 try {
-_isAvailable = await _inAppPurchase.isAvailable();
+// Load the locally remembered entitlement first.
+//
+// This means a genuine non-consumable purchase remains unlocked
+// immediately when the app is reopened.
+final prefs =
+await SharedPreferences.getInstance();
+
+final previouslyOwned =
+prefs.getBool(_proOwnedKey) ?? false;
+
+if (previouslyOwned) {
+_isPro = true;
+debugPrint(
+'SPIRIT TRACE: Previously purchased PRO entitlement found.',
+);
+}
+
+_isAvailable =
+await _inAppPurchase.isAvailable();
 
 if (!_isAvailable) {
 debugPrint(
@@ -67,7 +89,7 @@ debugPrint(
 return;
 }
 
-final ProductDetailsResponse response =
+final response =
 await _inAppPurchase.queryProductDetails(
 <String>{proProductId},
 );
@@ -87,7 +109,8 @@ debugPrint(
 return;
 }
 
-for (final ProductDetails product in response.productDetails) {
+for (final ProductDetails product
+in response.productDetails) {
 if (product.id == proProductId) {
 _proProduct = product;
 
@@ -105,18 +128,23 @@ debugPrint(
 'SPIRIT TRACE purchase initialisation error: $e',
 );
 } finally {
+_initialised = true;
 _isLoading = false;
 notifyListeners();
 }
 }
 
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // BUY PRO
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> buyPro() async {
 if (_isLoading) {
 return;
+}
+
+if (!_initialised) {
+await initialise();
 }
 
 if (!_isAvailable) {
@@ -131,7 +159,7 @@ return;
 }
 
 try {
-final PurchaseParam purchaseParam = PurchaseParam(
+final purchaseParam = PurchaseParam(
 productDetails: _proProduct!,
 );
 
@@ -149,9 +177,9 @@ debugPrint(
 }
 }
 
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // RESTORE PURCHASE
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> restorePurchases() async {
 if (_isLoading) {
@@ -177,9 +205,9 @@ notifyListeners();
 }
 }
 
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // HANDLE PURCHASE UPDATES
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> _handlePurchaseUpdates(
 List<PurchaseDetails> purchases,
@@ -196,11 +224,11 @@ debugPrint(
 
 switch (purchase.status) {
 case PurchaseStatus.purchased:
-_unlockPro();
+await _unlockPro();
 break;
 
 case PurchaseStatus.restored:
-_unlockPro();
+await _unlockPro();
 break;
 
 case PurchaseStatus.pending:
@@ -223,11 +251,6 @@ debugPrint(
 break;
 }
 
-/*
-* IMPORTANT:
-*
-* PRO is unlocked BEFORE the transaction is completed.
-*/
 if (purchase.pendingCompletePurchase) {
 await _inAppPurchase.completePurchase(
 purchase,
@@ -236,11 +259,19 @@ purchase,
 }
 }
 
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // UNLOCK PRO
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
-void _unlockPro() {
+Future<void> _unlockPro() async {
+final prefs =
+await SharedPreferences.getInstance();
+
+await prefs.setBool(
+_proOwnedKey,
+true,
+);
+
 if (_isPro) {
 return;
 }
@@ -254,26 +285,9 @@ debugPrint(
 notifyListeners();
 }
 
-// ------------------------------------------------------------
-// MANUAL ENTITLEMENT RESET
-// ------------------------------------------------------------
-//
-// This is deliberately private.
-// The app should never allow a normal user action to turn PRO off.
-//
-
-void _lockPro() {
-if (!_isPro) {
-return;
-}
-
-_isPro = false;
-notifyListeners();
-}
-
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // CLEAN UP
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 @override
 void dispose() {
@@ -281,5 +295,6 @@ _purchaseSubscription?.cancel();
 super.dispose();
 }
 }
+
 
 
