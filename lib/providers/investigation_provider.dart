@@ -7,11 +7,20 @@ import '../services/audio_service.dart';
 import '../services/investigation_service.dart';
 import '../services/purchase_service.dart';
 
-enum InvestigationPhase { idle, baseline, scanning, detected }
+enum InvestigationPhase {
+idle,
+baseline,
+scanning,
+detected,
+}
 
-/// Lifecycle of the investigation session itself. Nothing runs until the
-/// investigator deliberately moves from [ready] to [active].
-enum SessionState { ready, active, ended }
+/// Lifecycle of the investigation session itself.
+/// Nothing runs until the investigator deliberately moves from ready to active.
+enum SessionState {
+ready,
+active,
+ended,
+}
 
 class InvestigationProvider extends ChangeNotifier {
 final InvestigationService _service;
@@ -75,8 +84,7 @@ _baselineRemaining <= 0
 ? 0
 : 1 - (_baselineRemaining / baselineSeconds);
 
-bool get hasBaseline =>
-_investigation?.hasBaseline ?? false;
+bool get hasBaseline => _investigation?.hasBaseline ?? false;
 
 String _liveText = '';
 String get liveText => _liveText;
@@ -90,23 +98,18 @@ String? get error => _error;
 bool _audioInitialized = false;
 bool get audioInitialized => _audioInitialized;
 
-bool get speechAvailable =>
-_audioService.speechAvailable;
+bool get speechAvailable => _audioService.speechAvailable;
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // PRO STATUS
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 bool get isPro => _purchaseService.isPro;
 
 bool get patternAnalysisAvailable => isPro;
-
 bool get connectionsAvailable => isPro;
-
 bool get repeatabilityAnalysisAvailable => isPro;
-
 bool get environmentalAnalysisAvailable => isPro;
-
 bool get caseFileAvailable => isPro;
 
 Timer? _scanTimer;
@@ -116,28 +119,23 @@ Timer? _sessionTimer;
 String? _currentAudioPath;
 String? _currentQuestion;
 String? _repeatOriginalId;
-
 DateTime? _questionEndedAt;
 DateTime? _firstEventAt;
 
 double _peakLevel = 0;
 final List<double> _levelSamples = [];
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // PREMIUM ANALYSIS
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
-/// Basic clusters are retained internally.
-///
 /// Pattern results exposed as an investigation feature are PRO.
 List<PatternResult> get clusters {
 if (!isPro || _investigation == null) {
 return [];
 }
 
-return _service.buildClusters(
-_investigation!,
-);
+return _service.buildClusters(_investigation!);
 }
 
 List<PatternResult> get patterns {
@@ -145,8 +143,7 @@ if (!isPro || _investigation == null) {
 return [];
 }
 
-return _service
-.detectPatterns(_investigation!);
+return _service.detectPatterns(_investigation!);
 }
 
 List<ConnectionResult> get connections {
@@ -154,9 +151,7 @@ if (!isPro) {
 return [];
 }
 
-return _service.detectConnections(
-patterns,
-);
+return _service.detectConnections(patterns);
 }
 
 String get suggestedQuestion {
@@ -164,9 +159,7 @@ if (!isPro) {
 return 'Is anyone here with us?';
 }
 
-return _service.suggestFollowUpQuestion(
-patterns,
-);
+return _service.suggestFollowUpQuestion(patterns);
 }
 
 String suggestedQuestionFor(String word) {
@@ -174,9 +167,7 @@ if (!isPro) {
 return 'Can you tell us more?';
 }
 
-return _service.suggestFollowUpQuestionFor(
-word,
-);
+return _service.suggestFollowUpQuestionFor(word);
 }
 
 List<QuestionResponse> occurrencesOf(
@@ -210,24 +201,18 @@ if (!isPro || _investigation == null) {
 return '';
 }
 
-return _service.buildCaseFile(
-_investigation!,
-);
+return _service.buildCaseFile(_investigation!);
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // AUDIO
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> initAudio() async {
-_blindIntroSeen =
-await _service.getFlag(blindFlag);
+_blindIntroSeen = await _service.getFlag(blindFlag);
+_skepticIntroSeen = await _service.getFlag(skepticFlag);
 
-_skepticIntroSeen =
-await _service.getFlag(skepticFlag);
-
-_audioInitialized =
-await _audioService.initialize();
+_audioInitialized = await _audioService.initialize();
 
 if (!_audioInitialized) {
 _error =
@@ -237,9 +222,9 @@ _error =
 notifyListeners();
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // LIFECYCLE
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 void startInvestigation() {
 if (_session == SessionState.active) {
@@ -267,9 +252,7 @@ if (inv == null) {
 return;
 }
 
-_elapsed =
-DateTime.now().difference(inv.startTime);
-
+_elapsed = DateTime.now().difference(inv.startTime);
 notifyListeners();
 },
 );
@@ -277,7 +260,8 @@ notifyListeners();
 notifyListeners();
 }
 
-/// Stops every running process. Nothing is written to storage here.
+/// Stops every running process.
+/// Nothing is written to storage here.
 Future<void> stopInvestigation() async {
 if (_session != SessionState.active) {
 return;
@@ -312,11 +296,10 @@ _session = SessionState.ended;
 notifyListeners();
 }
 
-/// Persists the finished session.
+/// Saves the finished investigation.
 ///
-/// The actual Free/PRO saved-investigation limit will be enforced
-/// separately at the repository/save layer so it cannot be bypassed
-/// through another screen.
+/// FREE users may save one investigation.
+/// PRO users may save unlimited investigations.
 Future<Investigation?> saveCurrentInvestigation() async {
 final inv = _investigation;
 
@@ -324,11 +307,46 @@ if (inv == null) {
 return null;
 }
 
+// PRO users have unlimited saved investigations.
+if (!isPro) {
+try {
+final savedInvestigations =
+await _service.getAllInvestigations();
+
+// If there is already one saved investigation, prevent another save.
+if (savedInvestigations.isNotEmpty) {
+_error =
+'Free users can save 1 investigation. Upgrade to SPIRIT TRACE PRO for unlimited saved investigations.';
+notifyListeners();
+return null;
+}
+} catch (e) {
+_error = 'Unable to check saved investigations.';
+debugPrint(
+'SPIRIT TRACE save limit check error: $e',
+);
+notifyListeners();
+return null;
+}
+}
+
 inv.endTime ??= DateTime.now();
 
+try {
 await _service.saveInvestigation(inv);
 
+_error = null;
+notifyListeners();
+
 return inv;
+} catch (e) {
+_error = 'Unable to save investigation.';
+debugPrint(
+'SPIRIT TRACE save error: $e',
+);
+notifyListeners();
+return null;
+}
 }
 
 /// Throws away the finished session without persisting anything.
@@ -336,9 +354,7 @@ Future<void> discardCurrentInvestigation() async {
 final inv = _investigation;
 
 if (inv != null) {
-await _service.deleteInvestigation(
-inv.id,
-);
+await _service.deleteInvestigation(inv.id);
 }
 
 _investigation = null;
@@ -358,9 +374,9 @@ _elapsed = Duration.zero;
 notifyListeners();
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // MODES
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 void toggleBlindMode() {
 _blindMode = !_blindMode;
@@ -369,9 +385,7 @@ notifyListeners();
 
 void toggleSkepticMode() {
 _skepticMode = !_skepticMode;
-_investigation?.skepticMode =
-_skepticMode;
-
+_investigation?.skepticMode = _skepticMode;
 notifyListeners();
 }
 
@@ -400,41 +414,37 @@ notifyListeners();
 void renameInvestigation(String name) {
 final inv = _investigation;
 
-if (inv == null ||
-name.trim().isEmpty) {
+if (inv == null || name.trim().isEmpty) {
 return;
 }
 
 inv.name = name.trim();
-
 notifyListeners();
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // BASELINE
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> startBaselineScan() async {
-if (!isActive ||
-_phase != InvestigationPhase.idle) {
+if (!isActive || _phase != InvestigationPhase.idle) {
 return;
 }
 
 _phase = InvestigationPhase.baseline;
 _baselineRemaining = baselineSeconds;
-
 _levelSamples.clear();
 _currentLevel = 0;
 
 notifyListeners();
 
 await _audioService.startLevelScan(
-duration:
-const Duration(seconds: baselineSeconds),
+duration: const Duration(
+seconds: baselineSeconds,
+),
 onLevel: (level) {
 _currentLevel = level;
 _levelSamples.add(level);
-
 notifyListeners();
 },
 );
@@ -443,7 +453,6 @@ _baselineTimer = Timer.periodic(
 const Duration(seconds: 1),
 (timer) {
 _baselineRemaining--;
-
 notifyListeners();
 
 if (_baselineRemaining <= 0) {
@@ -460,19 +469,15 @@ await _audioService.stopListening();
 final inv = _investigation;
 
 if (inv != null) {
-inv.baselineLevel =
-_levelSamples.isEmpty
+inv.baselineLevel = _levelSamples.isEmpty
 ? null
 : _levelSamples.reduce(
 (a, b) => a + b,
 ) /
 _levelSamples.length;
 
-inv.baselineCompletedAt =
-DateTime.now();
-
-inv.baselineDurationMs =
-baselineSeconds * 1000;
+inv.baselineCompletedAt = DateTime.now();
+inv.baselineDurationMs = baselineSeconds * 1000;
 }
 
 _phase = InvestigationPhase.idle;
@@ -491,37 +496,31 @@ _baselineRemaining = 0;
 notifyListeners();
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // QUESTIONS
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> askQuestion(
 String question, {
 String? repeatOriginalId,
 }) async {
-if (!isActive ||
-_investigation == null) {
+if (!isActive || _investigation == null) {
 return;
 }
 
 // Repeat testing is a PRO analysis feature.
-if (repeatOriginalId != null &&
-!isPro) {
+if (repeatOriginalId != null && !isPro) {
 return;
 }
 
 _currentQuestion = question;
-_repeatOriginalId =
-repeatOriginalId;
-
+_repeatOriginalId = repeatOriginalId;
 _phase = InvestigationPhase.scanning;
 _liveText = '';
 _peakLevel = 0;
 _firstEventAt = null;
-_scanTimeRemaining =
-scanWindowSeconds;
-_questionEndedAt =
-DateTime.now();
+_scanTimeRemaining = scanWindowSeconds;
+_questionEndedAt = DateTime.now();
 
 notifyListeners();
 
@@ -529,8 +528,9 @@ _currentAudioPath =
 await _audioService.startRecording();
 
 await _audioService.startListening(
-listenFor:
-const Duration(seconds: scanWindowSeconds),
+listenFor: const Duration(
+seconds: scanWindowSeconds,
+),
 onLevel: (level) {
 _currentLevel = level;
 
@@ -538,27 +538,21 @@ if (level > _peakLevel) {
 _peakLevel = level;
 }
 
-if (_firstEventAt == null &&
-level > 1.0) {
-_firstEventAt =
-DateTime.now();
+if (_firstEventAt == null && level > 1.0) {
+_firstEventAt = DateTime.now();
 }
 
 notifyListeners();
 },
-onResult:
-(text, confidence, isFinal) {
+onResult: (text, confidence, isFinal) {
 if (text.isNotEmpty) {
-_firstEventAt ??=
-DateTime.now();
+_firstEventAt ??= DateTime.now();
 }
 
 _liveText = text;
-
 notifyListeners();
 
-if (isFinal &&
-text.isNotEmpty) {
+if (isFinal && text.isNotEmpty) {
 _scanTimer?.cancel();
 
 _completeWindow(
@@ -573,7 +567,6 @@ _scanTimer = Timer.periodic(
 const Duration(seconds: 1),
 (timer) {
 _scanTimeRemaining--;
-
 notifyListeners();
 
 if (_scanTimeRemaining <= 0) {
@@ -593,40 +586,32 @@ String text,
 double? confidence,
 ) {
 if (text.trim().isEmpty) {
-final baseline =
-_investigation?.baselineLevel;
+final baseline = _investigation?.baselineLevel;
 
 final aboveBaseline =
 baseline != null &&
 (_peakLevel - baseline) >= 2.5;
 
-if (aboveBaseline ||
-_peakLevel > 5.0) {
-return AudioClassification
-.uncertainAudio;
+if (aboveBaseline || _peakLevel > 5.0) {
+return AudioClassification.uncertainAudio;
 }
 
 return AudioClassification.none;
 }
 
-if (confidence == null ||
-confidence <= 0) {
-return AudioClassification
-.possibleSpeech;
+if (confidence == null || confidence <= 0) {
+return AudioClassification.possibleSpeech;
 }
 
 if (confidence >= 0.6) {
-return AudioClassification
-.possibleResponse;
+return AudioClassification.possibleResponse;
 }
 
 if (confidence >= 0.35) {
-return AudioClassification
-.possibleSpeech;
+return AudioClassification.possibleSpeech;
 }
 
-return AudioClassification
-.uncertainAudio;
+return AudioClassification.uncertainAudio;
 }
 
 Future<void> _completeWindow(
@@ -645,77 +630,49 @@ return;
 final now = DateTime.now();
 final trimmed = text.trim();
 
-final hasText =
-trimmed.isNotEmpty;
+final hasText = trimmed.isNotEmpty;
 
 final confidenceAvailable =
-confidence != null &&
-confidence > 0;
+confidence != null && confidence > 0;
 
-final eventAt =
-_firstEventAt;
+final eventAt = _firstEventAt;
 
 final latency =
-eventAt != null &&
-_questionEndedAt != null
+eventAt != null && _questionEndedAt != null
 ? eventAt
-.difference(
-_questionEndedAt!,
-)
+.difference(_questionEndedAt!)
 .inMilliseconds
 : null;
 
-final windowMs =
-_questionEndedAt != null
+final windowMs = _questionEndedAt != null
 ? now
-.difference(
-_questionEndedAt!,
-)
+.difference(_questionEndedAt!)
 .inMilliseconds
 : null;
 
 final response = QuestionResponse(
-question:
-_currentQuestion ?? '',
+question: _currentQuestion ?? '',
 timestamp: now,
-questionEndedAt:
-_questionEndedAt ?? now,
-detectedResponse:
-hasText ? trimmed : null,
+questionEndedAt: _questionEndedAt ?? now,
+detectedResponse: hasText ? trimmed : null,
 confidence:
-confidenceAvailable
-? confidence
-: null,
-confidenceAvailable:
-confidenceAvailable,
-audioPath:
-recorded ?? _currentAudioPath,
-audioDurationMs:
-windowMs,
-audioLevel:
-_peakLevel > 0
-? _peakLevel
-: null,
-responseLatencyMs:
-latency,
-classification:
-_classify(
+confidenceAvailable ? confidence : null,
+confidenceAvailable: confidenceAvailable,
+audioPath: recorded ?? _currentAudioPath,
+audioDurationMs: windowMs,
+audioLevel: _peakLevel > 0 ? _peakLevel : null,
+responseLatencyMs: latency,
+classification: _classify(
 trimmed,
 confidence,
 ),
-blindMode:
-_blindMode,
-skepticMode:
-_skepticMode,
-isRepeatTest:
-_repeatOriginalId != null,
-repeatTestOriginalId:
-_repeatOriginalId,
+blindMode: _blindMode,
+skepticMode: _skepticMode,
+isRepeatTest: _repeatOriginalId != null,
+repeatTestOriginalId: _repeatOriginalId,
 );
 
-_investigation?.responses.add(
-response,
-);
+_investigation?.responses.add(response);
 
 _phase = hasText
 ? InvestigationPhase.detected
@@ -728,9 +685,9 @@ _repeatOriginalId = null;
 notifyListeners();
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // REVIEW
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 QuestionResponse? responseById(
 String id,
@@ -751,15 +708,13 @@ return null;
 void revealResponse(
 String responseId,
 ) {
-final r =
-responseById(responseId);
+final r = responseById(responseId);
 
 if (r == null) {
 return;
 }
 
 r.revealed = true;
-
 notifyListeners();
 }
 
@@ -767,8 +722,7 @@ void setStatus(
 String responseId,
 ResponseStatus status,
 ) {
-final r =
-responseById(responseId);
+final r = responseById(responseId);
 
 if (r == null) {
 return;
@@ -794,8 +748,7 @@ void setNote(
 String responseId,
 String? note,
 ) {
-final r =
-responseById(responseId);
+final r = responseById(responseId);
 
 if (r == null) {
 return;
@@ -810,35 +763,27 @@ notifyListeners();
 }
 
 void dismissDetection() {
-_phase =
-InvestigationPhase.idle;
-
+_phase = InvestigationPhase.idle;
 notifyListeners();
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // PRO: REPEATABILITY
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 RepeatComparison compareRepeat(
 String originalId,
 String repeatId,
 ) {
 if (!isPro) {
-return RepeatComparison
-.inconclusive;
+return RepeatComparison.inconclusive;
 }
 
-final original =
-responseById(originalId);
+final original = responseById(originalId);
+final repeat = responseById(repeatId);
 
-final repeat =
-responseById(repeatId);
-
-if (original == null ||
-repeat == null) {
-return RepeatComparison
-.inconclusive;
+if (original == null || repeat == null) {
+return RepeatComparison.inconclusive;
 }
 
 return _service.compareRepeatTest(
@@ -847,15 +792,14 @@ repeat,
 );
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // AUDIO PLAYBACK
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 Future<void> playResponseAudio(
 String responseId,
 ) async {
-final r =
-responseById(responseId);
+final r = responseById(responseId);
 
 if (r?.audioPath != null) {
 await _audioService.playAudio(
@@ -864,9 +808,9 @@ r!.audioPath!,
 }
 }
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // CLEANUP
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 @override
 void dispose() {
@@ -879,4 +823,5 @@ _audioService.dispose();
 super.dispose();
 }
 }
+
 
