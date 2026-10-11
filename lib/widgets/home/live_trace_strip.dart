@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme.dart';
 
 /// Idle trace shown on the home screen. The microphone is not opened here,
@@ -53,11 +54,18 @@ class _LiveTraceStripState extends State<LiveTraceStrip>
         children: [
           Row(
             children: [
-              Text('LIVE AUDIO TRACE',
-                  style: text.labelSmall?.copyWith(color: appColors.subtleText)),
-              const Spacer(),
-              Text('IDLE — MIC NOT ACTIVE',
-                  style: text.labelSmall?.copyWith(color: appColors.subtleText)),
+              Flexible(
+                child: Text(context.l10n.t('liveAudioTrace'),
+                    style: text.labelSmall
+                        ?.copyWith(color: appColors.subtleText)),
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Flexible(
+                child: Text(context.l10n.t('idleMic'),
+                    textAlign: TextAlign.end,
+                    style: text.labelSmall
+                        ?.copyWith(color: appColors.subtleText)),
+              ),
             ],
           ),
           const SizedBox(height: AppTheme.spacingSm),

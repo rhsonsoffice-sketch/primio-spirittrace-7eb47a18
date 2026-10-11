@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme.dart';
 import '../common/app_button.dart';
 
@@ -19,28 +20,25 @@ class SessionReadyView extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     return Padding(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('READY TO INVESTIGATE',
+          Text(l10n.t('statusReady'),
               style: text.headlineSmall?.copyWith(color: colors.onSurface),
               textAlign: TextAlign.center),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
-            micUnavailable
-                ? 'The microphone is unavailable on this device. You can still '
-                    'record questions and notes.'
-                : 'Choose your modes, then start the session. Nothing is '
-                    'recorded or analysed until you begin.',
+            l10n.t(micUnavailable ? 'readyBodyNoMic' : 'readyBody'),
             style: text.bodySmall?.copyWith(color: appColors.subtleText),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacingXl),
           AppButton(
-            label: 'START INVESTIGATION',
+            label: l10n.t('startInvestigation'),
             icon: Icons.play_arrow,
             pulse: true,
             onPressed: onStart,

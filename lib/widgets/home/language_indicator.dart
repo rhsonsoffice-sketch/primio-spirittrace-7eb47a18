@@ -53,7 +53,7 @@ class LanguageIndicator extends StatelessWidget {
         ),
         const SizedBox(height: AppTheme.spacingXs),
         Text(
-          context.l10n.t('availableInLanguages'),
+          context.l10n.t('availableIn10'),
           style: text.labelSmall?.copyWith(color: appColors.subtleText),
         ),
       ],

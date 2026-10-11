@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/label_keys.dart';
 import '../../models/investigation.dart';
 import '../../theme/theme.dart';
 import '../common/glowing_card.dart';
@@ -60,6 +62,7 @@ class ResponseCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
     final hasResponse = response.hasResponse;
     final isLocked =
         (response.blindMode || blindActive) && !response.revealed && hasResponse;
@@ -93,7 +96,7 @@ class ResponseCard extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingSm),
           if (response.isRepeatTest)
             _Chip(
-              label: 'REPEAT TEST',
+              label: l10n.t('repeatTest'),
               color: colors.secondary,
               margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
             ),
@@ -115,9 +118,7 @@ class ResponseCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    response.isUncertain
-                        ? 'UNCERTAIN RESPONSE'
-                        : response.classification.label,
+                    l10n.t(classificationKey(response.classification)),
                     style: text.labelSmall?.copyWith(color: accent),
                   ),
                   const SizedBox(height: AppTheme.spacingXs),
@@ -139,24 +140,33 @@ class ResponseCard extends StatelessWidget {
                       style: text.titleLarge?.copyWith(color: accent),
                     ),
                   ),
-                  if (response.latencyLabel != null) ...[
+                  if (response.responseLatencyMs != null &&
+                      response.responseLatencyMs! > 0) ...[
                     const SizedBox(height: AppTheme.spacingXs),
-                    Text('RESPONSE TIMING',
+                    Text(l10n.t('responseTiming'),
                         style: text.labelSmall
                             ?.copyWith(color: appColors.subtleText)),
-                    Text(response.latencyLabel!,
+                    Text(
+                        l10n.f(
+                          'latencyAfterQuestion',
+                          (response.responseLatencyMs! / 1000)
+                              .toStringAsFixed(1),
+                        ),
                         style: text.bodySmall
                             ?.copyWith(color: colors.onSurface)),
                   ],
                   if (isRepeated) ...[
                     const SizedBox(height: AppTheme.spacingSm),
                     _Chip(
-                      label: (comparison ?? RepeatComparison.repeated).label,
+                      label: l10n.t(repeatComparisonKey(
+                          comparison ?? RepeatComparison.repeated)),
                       color: appColors.success,
                     ),
                   ] else if (comparison != null) ...[
                     const SizedBox(height: AppTheme.spacingSm),
-                    _Chip(label: comparison!.label, color: appColors.subtleText),
+                    _Chip(
+                        label: l10n.t(repeatComparisonKey(comparison!)),
+                        color: appColors.subtleText),
                   ],
                 ],
               ),
@@ -183,7 +193,7 @@ class ResponseCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Text(
-                response.classification.label,
+                l10n.t(classificationKey(response.classification)),
                 style: text.labelMedium?.copyWith(color: appColors.subtleText),
               ),
             ),
@@ -212,7 +222,7 @@ class ResponseCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('NOTE',
+                  Text(l10n.t('noteLabel'),
                       style: text.labelSmall?.copyWith(color: colors.tertiary)),
                   const SizedBox(height: AppTheme.spacingXs),
                   Text(response.note!,
@@ -230,28 +240,30 @@ class ResponseCard extends StatelessWidget {
                 if (response.audioPath != null && onPlay != null)
                   _ActionChip(
                     icon: Icons.play_arrow,
-                    label: 'REPLAY AUDIO',
+                    label: l10n.t('replayAudio'),
                     onTap: onPlay,
                     color: appColors.glowSecondary,
                   ),
                 if (onMark != null)
                   _ActionChip(
                     icon: Icons.flag_outlined,
-                    label: response.status.label,
+                    label: l10n.t(responseStatusKey(response.status)),
                     onTap: onMark,
                     color: _statusColor(appColors, colors),
                   ),
                 if (onNote != null)
                   _ActionChip(
                     icon: Icons.edit_note,
-                    label: (response.note ?? '').isEmpty ? 'ADD NOTE' : 'EDIT NOTE',
+                    label: l10n.t((response.note ?? '').isEmpty
+                        ? 'addNote'
+                        : 'editNote'),
                     onTap: onNote,
                     color: colors.tertiary,
                   ),
                 if (onRepeatTest != null && !response.isRepeatTest)
                   _ActionChip(
                     icon: Icons.repeat,
-                    label: 'REPEAT TEST',
+                    label: l10n.t('repeatTest'),
                     onTap: onRepeatTest,
                     color: colors.secondary,
                   ),
@@ -295,6 +307,7 @@ class _LockedBlockState extends State<_LockedBlock>
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.spacingMd),
@@ -308,10 +321,12 @@ class _LockedBlockState extends State<_LockedBlock>
       ),
       child: Column(
         children: [
-          Text('⚠️ POSSIBLE RESPONSE DETECTED',
+          Text('⚠️ ${l10n.t('possibleResponseDetected')}',
+              textAlign: TextAlign.center,
               style: text.labelMedium?.copyWith(color: appColors.warning)),
           const SizedBox(height: AppTheme.spacingXs),
-          Text('RESPONSE LOCKED',
+          Text(l10n.t('responseLocked'),
+              textAlign: TextAlign.center,
               style: text.labelLarge?.copyWith(color: appColors.warning)),
           const SizedBox(height: AppTheme.spacingSm),
           SizedBox(
@@ -336,7 +351,7 @@ class _LockedBlockState extends State<_LockedBlock>
                     widget.onReveal!();
                   },
             icon: const Icon(Icons.visibility, size: AppTheme.iconSm),
-            label: const Text('REVEAL RESPONSE'),
+            label: Text(l10n.t('revealResponse')),
             style: TextButton.styleFrom(foregroundColor: appColors.warning),
           ),
         ],

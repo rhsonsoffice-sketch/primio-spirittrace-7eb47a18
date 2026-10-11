@@ -1,44 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme.dart';
 import '../common/app_button.dart';
 
-class _Slide {
-  final String title;
-  final String body;
-  final String action;
-  const _Slide(this.title, this.body, this.action);
-}
-
-const _slides = [
-  _Slide(
-    'WHAT IS TRACE FIELD?',
-    'Trace Field gives you a visual way to observe changes during a paranormal '
-        'investigation.\n\nInstead of only listening for responses, you can watch '
-        'the Field for unusual changes and temporary patterns.',
-    'NEXT',
-  ),
-  _Slide(
-    'HOW IT WORKS',
-    'First, Trace Field establishes a baseline for your surroundings.\n\n'
-        'It then monitors supported device inputs and turns significant changes '
-        'into visual activity within the Field.\n\nBASELINE → CHANGE → FIELD RESPONSE',
-    'NEXT',
-  ),
-  _Slide(
-    'WHAT SHOULD I DO?',
-    'Place your phone somewhere stable.\n\nAsk your questions clearly.\n\n'
-        'Then remain as still and quiet as possible.\n\nWatch the Field.',
-    'NEXT',
-  ),
-  _Slide(
-    'WHAT AM I LOOKING FOR?',
-    'Most of the time the Field will remain stable.\n\nOccasionally you may see '
-        'a disturbance or an unusual temporary formation.\n\nThese events are not '
-        'proof of paranormal activity. They are something to investigate and, '
-        'where possible, repeat.',
-    'ENTER TRACE FIELD',
-  ),
+const _slideKeys = [
+  ['tutT1', 'tutB1', 'next'],
+  ['tutT2', 'tutB2', 'next'],
+  ['tutT3', 'tutB3', 'next'],
+  ['tutT4', 'tutB4', 'enterTraceField'],
 ];
 
 Future<void> showTraceFieldTutorial(BuildContext context) {
@@ -67,7 +37,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
   }
 
   void _next() {
-    if (_index == _slides.length - 1) {
+    if (_index == _slideKeys.length - 1) {
       Navigator.of(context).pop();
       return;
     }
@@ -82,6 +52,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -91,21 +62,21 @@ class _TutorialDialogState extends State<_TutorialDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              height: 260,
+              height: 280,
               child: PageView.builder(
                 controller: _controller,
-                itemCount: _slides.length,
+                itemCount: _slideKeys.length,
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (context, i) {
-                  final s = _slides[i];
+                  final s = _slideKeys[i];
                   return SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.title, style: text.titleLarge),
+                        Text(l10n.t(s[0]), style: text.titleLarge),
                         const SizedBox(height: AppTheme.spacingMd),
                         Text(
-                          s.body,
+                          l10n.t(s[1]),
                           style: text.bodyMedium?.copyWith(height: 1.6),
                         ),
                       ],
@@ -117,7 +88,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
             const SizedBox(height: AppTheme.spacingMd),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_slides.length, (i) {
+              children: List.generate(_slideKeys.length, (i) {
                 final active = i == _index;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
@@ -127,14 +98,16 @@ class _TutorialDialogState extends State<_TutorialDialog> {
                   height: AppTheme.spacingSm,
                   decoration: BoxDecoration(
                     color: active ? colors.primary : appColors.subtleText,
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSmall),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                 );
               }),
             ),
             const SizedBox(height: AppTheme.spacingMd),
-            AppButton(label: _slides[_index].action, onPressed: _next),
+            AppButton(
+              label: l10n.t(_slideKeys[_index][2]),
+              onPressed: _next,
+            ),
           ],
         ),
       ),
@@ -142,38 +115,10 @@ class _TutorialDialogState extends State<_TutorialDialog> {
   }
 }
 
-class _HelpItem {
-  final String q;
-  final String a;
-  const _HelpItem(this.q, this.a);
-}
-
-const _help = [
-  _HelpItem('What is Trace Field?',
-      'A visual way to watch your surroundings for measurable changes during an investigation.'),
-  _HelpItem('How does calibration work?',
-      'The app samples the microphone level and device motion for a few seconds to learn what "normal" looks like where you are.'),
-  _HelpItem('What does Field Stable mean?',
-      'Current readings are close to the baseline. The Field keeps moving gently because it is still monitoring.'),
-  _HelpItem('What is a Field Disturbance?',
-      'A measured change clearly above the baseline, with the input that changed shown where it can be identified.'),
-  _HelpItem('What is a Possible Formation?',
-      'The particles in the Field genuinely converged into a coherent shape. It is a visual pattern, not evidence of anything.'),
-  _HelpItem('What does Pulse do?',
-      'Opens a focused 30 second observation window and summarises everything recorded inside it.'),
-  _HelpItem('What does Skeptic Mode do?',
-      'Adds measured context and ordinary explanations to every event so you can judge it critically.'),
-  _HelpItem('What does Blind Mode do?',
-      'Hides interpretation — causes, resemblance and strength — until you choose Reveal Trace.'),
-  _HelpItem('How do I save an investigation?',
-      'Press Stop on the investigation screen, then choose Save Investigation.'),
-  _HelpItem('How do I review Past Investigations?',
-      'Open Past Investigations from the home screen and tap any saved session.'),
-];
-
 Future<void> showTraceFieldHelp(BuildContext context) {
   final text = Theme.of(context).textTheme;
   final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+  final l10n = context.l10n;
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -184,12 +129,12 @@ Future<void> showTraceFieldHelp(BuildContext context) {
         controller: controller,
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         children: [
-          Text('TRACE FIELD HELP', style: text.titleLarge),
+          Text(l10n.t('helpTitle'), style: text.titleLarge),
           const SizedBox(height: AppTheme.spacingMd),
-          for (final h in _help) ...[
-            Text(h.q, style: text.titleSmall),
+          for (var i = 1; i <= 10; i++) ...[
+            Text(l10n.t('hq$i'), style: text.titleSmall),
             const SizedBox(height: AppTheme.spacingXs),
-            Text(h.a,
+            Text(l10n.t('ha$i'),
                 style: text.bodySmall?.copyWith(
                   color: appColors.subtleText,
                   height: 1.5,
@@ -197,8 +142,7 @@ Future<void> showTraceFieldHelp(BuildContext context) {
             const SizedBox(height: AppTheme.spacingMd),
           ],
           Text(
-            'Trace Field records changes and visual patterns. It does not detect '
-            'spirits and results are not scientifically verified.',
+            l10n.t('helpNote'),
             style: text.labelSmall?.copyWith(
               color: appColors.subtleText,
               fontStyle: FontStyle.italic,

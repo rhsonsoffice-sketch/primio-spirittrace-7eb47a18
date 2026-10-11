@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/investigation.dart';
 import '../../theme/theme.dart';
 import '../common/glowing_card.dart';
@@ -31,6 +32,7 @@ class FieldEventCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
     final accent = event.isFormation ? colors.primary : appColors.glowSecondary;
     final hideAnalysis = blindActive;
 
@@ -47,11 +49,12 @@ class FieldEventCard extends StatelessWidget {
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Expanded(
-                child: Text(event.type.label,
+                child: Text(l10n.label('fet', event.type),
                     style: text.labelMedium?.copyWith(color: accent)),
               ),
               Text(event.timeLabel,
-                  style: text.labelSmall?.copyWith(color: appColors.subtleText)),
+                  style:
+                      text.labelSmall?.copyWith(color: appColors.subtleText)),
               if (onClose != null)
                 GestureDetector(
                   onTap: onClose,
@@ -66,54 +69,58 @@ class FieldEventCard extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingSm),
           if (event.type == FieldEventType.pulse)
             Text(
-              '${event.pulseDisturbances ?? 0} disturbances · '
-              '${event.pulseUnclassified ?? 0} unclassified · '
-              '${event.pulseFormations ?? 0} possible formations',
+              '${event.pulseDisturbances ?? 0} '
+              '${l10n.t('disturbancesWord')} · '
+              '${event.pulseUnclassified ?? 0} '
+              '${l10n.t('unclassifiedWord')} · '
+              '${event.pulseFormations ?? 0} '
+              '${l10n.t('formationsWord')}',
               style: text.bodySmall,
             )
           else if (event.type == FieldEventType.unclassified)
-            Text(
-              'An unusual change was detected. The source could not be classified.',
-              style: text.bodySmall?.copyWith(height: 1.5),
-            )
+            Text(l10n.t('unclassifiedBody'),
+                style: text.bodySmall?.copyWith(height: 1.5))
           else if (event.isFormation)
-            Text(
-              'An unusual temporary pattern appeared within the Field.',
-              style: text.bodySmall?.copyWith(height: 1.5),
-            )
+            Text(l10n.t('formationBody'),
+                style: text.bodySmall?.copyWith(height: 1.5))
           else
-            Text('Change detected', style: text.bodySmall),
+            Text(l10n.t('changeDetected'), style: text.bodySmall),
           const SizedBox(height: AppTheme.spacingSm),
           if (hideAnalysis)
-            Text('ANALYSIS HIDDEN — BLIND MODE ACTIVE',
+            Text(l10n.t('analysisHidden'),
                 style: text.labelSmall?.copyWith(color: appColors.warning))
           else ...[
             if (event.durationLabel != null)
-              _Row(label: 'Duration', value: event.durationLabel!),
+              _Row(
+                  label: l10n.t('durationLabel'),
+                  value: event.durationLabel!),
             if (event.isFormation && event.strength != null)
               _Row(
-                  label: 'Formation strength',
-                  value: event.strength!.label,
+                  label: l10n.t('formationStrength'),
+                  value: l10n.label('fs', event.strength!),
                   color: accent),
             if (event.isFormation && event.resemblance != null)
-              _Row(label: 'Pattern resemblance', value: event.resemblance!),
+              _Row(
+                  label: l10n.t('patternResemblance'),
+                  value: event.resemblance!),
             if (event.likelyCause != null)
-              _Row(label: 'Possible explanation', value: event.likelyCause!),
+              _Row(
+                  label: l10n.t('possibleExplanation'),
+                  value: l10n.t(event.likelyCause!)),
           ],
           if (skepticMode && !hideAnalysis) ...[
             const SizedBox(height: AppTheme.spacingSm),
             if (event.audioDeviation != null)
               _Row(
-                  label: 'Audio vs baseline',
+                  label: l10n.t('audioVsBaseline'),
                   value: '${event.audioDeviation!.toStringAsFixed(1)}σ'),
             if (event.motionDeviation != null)
               _Row(
-                  label: 'Motion vs baseline',
+                  label: l10n.t('motionVsBaseline'),
                   value: '${event.motionDeviation!.toStringAsFixed(1)}σ'),
             const SizedBox(height: AppTheme.spacingXs),
             Text(
-              'SKEPTIC NOTE — Consider ordinary environmental and device-related '
-              'explanations before interpreting an event as paranormal.',
+              l10n.t('skepticNote'),
               style: text.labelSmall?.copyWith(
                 color: colors.secondary,
                 height: 1.4,
@@ -128,28 +135,29 @@ class FieldEventCard extends StatelessWidget {
               if (onMark != null)
                 _Action(
                   icon: Icons.bookmark_border,
-                  label: event.isMarked ? 'MARKED' : 'MARK EVENT',
+                  label: l10n.t(event.isMarked ? 'markedWord' : 'markEvent'),
                   color: event.isMarked ? appColors.success : accent,
                   onTap: onMark!,
                 ),
               if (onDismiss != null)
                 _Action(
                   icon: Icons.block,
-                  label: event.isDismissed ? 'DISMISSED' : 'DISMISS',
+                  label:
+                      l10n.t(event.isDismissed ? 'dismissedWord' : 'dismiss'),
                   color: appColors.subtleText,
                   onTap: onDismiss!,
                 ),
               if (onReplay != null)
                 _Action(
                   icon: Icons.play_arrow,
-                  label: 'REPLAY',
+                  label: l10n.t('replay'),
                   color: colors.secondary,
                   onTap: onReplay!,
                 ),
               if (onShare != null)
                 _Action(
                   icon: Icons.ios_share,
-                  label: 'SHARE TRACE',
+                  label: l10n.t('shareTrace'),
                   color: appColors.glow,
                   onTap: onShare!,
                 ),
@@ -174,15 +182,20 @@ class _Row extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: text.labelSmall?.copyWith(color: appColors.subtleText)),
-          Flexible(
+          Expanded(
+            flex: 5,
+            child: Text(label,
+                style:
+                    text.labelSmall?.copyWith(color: appColors.subtleText)),
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+          Expanded(
+            flex: 5,
             child: Text(
               value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
               style: text.labelMedium?.copyWith(color: color),
             ),
           ),

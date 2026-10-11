@@ -2,7 +2,7 @@ name: primio_app
 description: A Primio-generated Flutter app
 publish_to: 'none'
 
-version: 1.0.3+5
+version: 1.0.0+1
 
 environment:
   sdk: ^3.7.2
@@ -15,7 +15,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   dio: ^5.8.0
   provider: ^6.1.1
-  in_app_purchase: ^3.2.3
+
   # OS integration / UX helpers
   url_launcher: ^6.3.2
   awesome_notifications: ^0.10.1
@@ -66,7 +66,7 @@ dependencies:
   # PRIMIO_ADDED: speech_to_text — real-time speech recognition for spirit response detection
   speech_to_text: ^7.0.0
   # PRIMIO_ADDED: record — audio recording during investigation response windows
-  record: 6.2.1
+  record: ^5.2.0
   # PRIMIO_ADDED: just_audio — playback of recorded investigation audio clips
   just_audio: ^0.9.42
   # PRIMIO_ADDED: sensors_plus — real device motion input for the Trace Field
@@ -74,6 +74,8 @@ dependencies:
   # PRIMIO_ADDED: flutter_localizations — Material/Cupertino locale data for supported languages
   flutter_localizations:
     sdk: flutter
+  # PRIMIO_ADDED: in_app_purchase — StoreKit lifetime Pro unlock (3.2.3 is the newest release supporting the Flutter 3.32 pin)
+  in_app_purchase: ^3.2.3
   # --- PRIMIO_ADDITIONS END ---
 
 dev_dependencies:

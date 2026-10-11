@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme.dart';
 import '../common/app_button.dart';
 import '../common/glowing_card.dart';
@@ -27,6 +28,7 @@ class BaselinePanel extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     return GlowingCard(
       glowColor: colors.secondary,
@@ -39,16 +41,17 @@ class BaselinePanel extends StatelessWidget {
               Icon(Icons.graphic_eq,
                   size: AppTheme.iconMd, color: colors.secondary),
               const SizedBox(width: AppTheme.spacingSm),
-              Text('BASELINE SCAN',
-                  style: text.labelLarge?.copyWith(color: colors.secondary)),
+              Expanded(
+                child: Text(l10n.t('baselineScanTitle'),
+                    style: text.labelLarge?.copyWith(color: colors.secondary)),
+              ),
             ],
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             running
-                ? 'Recording the room. Stay quiet for $secondsRemaining more seconds.'
-                : 'Record about 30 seconds of the surrounding audio before questioning. '
-                    'This is used to compare the environment later.',
+                ? l10n.tf('baselineRunning', '$secondsRemaining')
+                : l10n.t('baselineIdle'),
             style: text.bodySmall?.copyWith(color: appColors.subtleText),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -64,20 +67,20 @@ class BaselinePanel extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.spacingMd),
             AppButton(
-              label: 'CANCEL BASELINE',
+              label: l10n.t('cancelBaseline'),
               variant: AppButtonVariant.outline,
               onPressed: onCancel,
             ),
           ] else ...[
             AppButton(
-              label: 'START BASELINE SCAN',
+              label: l10n.t('startBaselineScan'),
               icon: Icons.graphic_eq,
               onPressed: onStart,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             TextButton(
               onPressed: onSkip,
-              child: Text('Skip baseline',
+              child: Text(l10n.t('skipBaseline'),
                   style:
                       text.bodySmall?.copyWith(color: appColors.subtleText)),
             ),

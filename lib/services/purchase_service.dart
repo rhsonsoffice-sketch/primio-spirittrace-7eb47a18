@@ -1,300 +1,50 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class PurchaseService extends ChangeNotifier {
-static const String proProductId = 'com.spirittrace.pro';
-static const String _proOwnedKey = 'spirit_trace_pro_owned';
+import '../repositories/investigation_repository.dart';
 
-final InAppPurchase _inAppPurchase = InAppPurchase.instance;
+/// Thin wrapper around Apple's StoreKit (via `in_app_purchase`) for the single
+/// non-consumable lifetime Pro unlock. All entitlement decisions live in
+/// ProProvider; this class only talks to the store and the local cache.
+class PurchaseService {
+  /// Must match App Store Connect exactly (Non-Consumable).
+  static const String productId = 'com.spirittrace.pro';
+  static const String _cacheFlag = 'pro_entitlement_cache';
 
-ProductDetails? _proProduct;
+  final InvestigationRepository _repository;
 
-bool _isAvailable = false;
-bool _isPro = false;
-bool _isLoading = false;
-bool _initialised = false;
+  PurchaseService({required InvestigationRepository repository})
+      : _repository = repository;
 
-StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+  /// The store is only wired for iOS. The web preview has no store, and the
+  /// Android billing version available on the current Flutter pin is no
+  /// longer accepted by Google Play.
+  bool get isSupported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-ProductDetails? get proProduct => _proProduct;
-bool get isAvailable => _isAvailable;
-bool get isPro => _isPro;
-bool get isLoading => _isLoading;
-bool get initialised => _initialised;
+  InAppPurchase get _iap => InAppPurchase.instance;
 
-PurchaseService() {
-_listenForPurchases();
-initialise();
+  Stream<List<PurchaseDetails>> get purchaseStream => _iap.purchaseStream;
+
+  Future<bool> isAvailable() => _iap.isAvailable();
+
+  Future<ProductDetailsResponse> queryProduct() =>
+      _iap.queryProductDetails({productId});
+
+  Future<bool> buy(ProductDetails product) => _iap.buyNonConsumable(
+        purchaseParam: PurchaseParam(productDetails: product),
+      );
+
+  /// On StoreKit 2 this reads the Apple ID's current verified entitlements
+  /// and emits exactly one batch on [purchaseStream].
+  Future<void> restore() => _iap.restorePurchases();
+
+  Future<void> complete(PurchaseDetails details) =>
+      _iap.completePurchase(details);
+
+  /// Offline cache only — refreshed against StoreKit on every launch.
+  Future<bool> loadCachedEntitlement() => _repository.getFlag(_cacheFlag);
+
+  Future<void> saveEntitlement(bool value) =>
+      _repository.setFlag(_cacheFlag, value);
 }
-
-// ---------------------------------------------------------------------------
-// PURCHASE LISTENER
-// ---------------------------------------------------------------------------
-
-void _listenForPurchases() {
-_purchaseSubscription =
-_inAppPurchase.purchaseStream.listen(
-_handlePurchaseUpdates,
-onError: (Object error) {
-debugPrint(
-'SPIRIT TRACE purchase stream error: $error',
-);
-},
-onDone: () {
-_purchaseSubscription?.cancel();
-},
-);
-}
-
-// ---------------------------------------------------------------------------
-// INITIALISE
-// ---------------------------------------------------------------------------
-
-Future<void> initialise() async {
-if (_isLoading || _initialised) {
-return;
-}
-
-_isLoading = true;
-notifyListeners();
-
-try {
-// Load the locally remembered entitlement first.
-//
-// This means a genuine non-consumable purchase remains unlocked
-// immediately when the app is reopened.
-final prefs =
-await SharedPreferences.getInstance();
-
-final previouslyOwned =
-prefs.getBool(_proOwnedKey) ?? false;
-
-if (previouslyOwned) {
-_isPro = true;
-debugPrint(
-'SPIRIT TRACE: Previously purchased PRO entitlement found.',
-);
-}
-
-_isAvailable =
-await _inAppPurchase.isAvailable();
-
-if (!_isAvailable) {
-debugPrint(
-'SPIRIT TRACE: In-app purchases are unavailable.',
-);
-return;
-}
-
-final response =
-await _inAppPurchase.queryProductDetails(
-<String>{proProductId},
-);
-
-if (response.error != null) {
-debugPrint(
-'SPIRIT TRACE product query error: '
-'${response.error}',
-);
-return;
-}
-
-if (response.productDetails.isEmpty) {
-debugPrint(
-'SPIRIT TRACE PRO product was not found.',
-);
-return;
-}
-
-for (final ProductDetails product
-in response.productDetails) {
-if (product.id == proProductId) {
-_proProduct = product;
-
-debugPrint(
-'SPIRIT TRACE PRO found: '
-'${product.id} '
-'${product.price}',
-);
-
-break;
-}
-}
-} catch (e) {
-debugPrint(
-'SPIRIT TRACE purchase initialisation error: $e',
-);
-} finally {
-_initialised = true;
-_isLoading = false;
-notifyListeners();
-}
-}
-
-// ---------------------------------------------------------------------------
-// BUY PRO
-// ---------------------------------------------------------------------------
-
-Future<void> buyPro() async {
-if (_isLoading) {
-return;
-}
-
-if (!_initialised) {
-await initialise();
-}
-
-if (!_isAvailable) {
-await initialise();
-}
-
-if (_proProduct == null) {
-debugPrint(
-'SPIRIT TRACE PRO product is unavailable.',
-);
-return;
-}
-
-try {
-final purchaseParam = PurchaseParam(
-productDetails: _proProduct!,
-);
-
-debugPrint(
-'SPIRIT TRACE: Starting PRO purchase.',
-);
-
-await _inAppPurchase.buyNonConsumable(
-purchaseParam: purchaseParam,
-);
-} catch (e) {
-debugPrint(
-'SPIRIT TRACE PRO purchase error: $e',
-);
-}
-}
-
-// ---------------------------------------------------------------------------
-// RESTORE PURCHASE
-// ---------------------------------------------------------------------------
-
-Future<void> restorePurchases() async {
-if (_isLoading) {
-return;
-}
-
-try {
-_isLoading = true;
-notifyListeners();
-
-debugPrint(
-'SPIRIT TRACE: Restoring purchases.',
-);
-
-await _inAppPurchase.restorePurchases();
-} catch (e) {
-debugPrint(
-'SPIRIT TRACE restore error: $e',
-);
-} finally {
-_isLoading = false;
-notifyListeners();
-}
-}
-
-// ---------------------------------------------------------------------------
-// HANDLE PURCHASE UPDATES
-// ---------------------------------------------------------------------------
-
-Future<void> _handlePurchaseUpdates(
-List<PurchaseDetails> purchases,
-) async {
-for (final PurchaseDetails purchase in purchases) {
-if (purchase.productID != proProductId) {
-continue;
-}
-
-debugPrint(
-'SPIRIT TRACE PRO purchase status: '
-'${purchase.status}',
-);
-
-switch (purchase.status) {
-case PurchaseStatus.purchased:
-await _unlockPro();
-break;
-
-case PurchaseStatus.restored:
-await _unlockPro();
-break;
-
-case PurchaseStatus.pending:
-debugPrint(
-'SPIRIT TRACE PRO purchase is pending.',
-);
-break;
-
-case PurchaseStatus.error:
-debugPrint(
-'SPIRIT TRACE PRO purchase error: '
-'${purchase.error}',
-);
-break;
-
-case PurchaseStatus.canceled:
-debugPrint(
-'SPIRIT TRACE PRO purchase was cancelled.',
-);
-break;
-}
-
-if (purchase.pendingCompletePurchase) {
-await _inAppPurchase.completePurchase(
-purchase,
-);
-}
-}
-}
-
-// ---------------------------------------------------------------------------
-// UNLOCK PRO
-// ---------------------------------------------------------------------------
-
-Future<void> _unlockPro() async {
-final prefs =
-await SharedPreferences.getInstance();
-
-await prefs.setBool(
-_proOwnedKey,
-true,
-);
-
-if (_isPro) {
-return;
-}
-
-_isPro = true;
-
-debugPrint(
-'SPIRIT TRACE PRO UNLOCKED',
-);
-
-notifyListeners();
-}
-
-// ---------------------------------------------------------------------------
-// CLEAN UP
-// ---------------------------------------------------------------------------
-
-@override
-void dispose() {
-_purchaseSubscription?.cancel();
-super.dispose();
-}
-}
-
-
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme.dart';
 
 class InvestigationStatusBar extends StatelessWidget {
@@ -76,9 +77,12 @@ class InvestigationStatusBar extends StatelessWidget {
                 color: listening ? appColors.success : appColors.danger,
               ),
               const SizedBox(width: AppTheme.spacingXs),
-              Text(
-                listening ? 'MICROPHONE ACTIVE' : 'MICROPHONE UNAVAILABLE',
-                style: text.labelSmall?.copyWith(color: appColors.subtleText),
+              Flexible(
+                child: Text(
+                  context.l10n.t(listening ? 'micActive' : 'micOff'),
+                  style: text.labelSmall?.copyWith(color: appColors.subtleText),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(

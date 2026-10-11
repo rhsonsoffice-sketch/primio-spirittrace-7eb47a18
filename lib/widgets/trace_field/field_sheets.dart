@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/investigation.dart';
 import '../../services/trace_field_engine.dart';
 import '../../theme/theme.dart';
@@ -21,6 +22,7 @@ Future<void> showFieldTimeline(
 }) {
   final text = Theme.of(context).textTheme;
   final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+  final l10n = context.l10n;
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -31,11 +33,11 @@ Future<void> showFieldTimeline(
         controller: controller,
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         children: [
-          Text('FIELD TIMELINE', style: text.titleLarge),
+          Text(l10n.t('fieldTimeline'), style: text.titleLarge),
           const SizedBox(height: AppTheme.spacingMd),
           if (events.isEmpty)
             Text(
-              'No Field events recorded yet.',
+              l10n.t('noFieldEvents'),
               style: text.bodyMedium?.copyWith(color: appColors.subtleText),
             )
           else
@@ -103,13 +105,15 @@ class _ReplaySheetState extends State<_ReplaySheet>
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     return Padding(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('FORMATION REPLAY', style: text.titleLarge),
+          Text(l10n.t('formationReplay'),
+              textAlign: TextAlign.center, style: text.titleLarge),
           const SizedBox(height: AppTheme.spacingXs),
           Text(widget.event.timeLabel,
               style: text.labelSmall?.copyWith(color: appColors.subtleText)),
@@ -135,7 +139,7 @@ class _ReplaySheetState extends State<_ReplaySheet>
           ),
           const SizedBox(height: AppTheme.spacingMd),
           Text(
-            'This replay shows the recorded Field frames unaltered.',
+            l10n.t('replayNote'),
             textAlign: TextAlign.center,
             style: text.labelSmall?.copyWith(
               color: appColors.subtleText,
@@ -144,7 +148,7 @@ class _ReplaySheetState extends State<_ReplaySheet>
           ),
           const SizedBox(height: AppTheme.spacingMd),
           AppButton(
-            label: 'CLOSE',
+            label: l10n.t('close'),
             variant: AppButtonVariant.outline,
             onPressed: () => Navigator.pop(context),
           ),
@@ -159,15 +163,19 @@ Future<void> showShareTrace(BuildContext context, FieldEvent event) {
   final text = Theme.of(context).textTheme;
   final colors = Theme.of(context).colorScheme;
   final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+  final l10n = context.l10n;
 
   final lines = <String>[
-    'SPIRIT TRACE — TRACE FIELD EVENT',
-    'Event: ${event.type.label}',
-    'Time: ${event.timeLabel}',
-    if (event.durationLabel != null) 'Duration: ${event.durationLabel}',
-    if (event.strength != null) 'Formation strength: ${event.strength!.label}',
-    if (event.resemblance != null) 'Pattern resemblance: ${event.resemblance}',
-    'Recorded with Spirit Trace. Not scientifically verified.',
+    'SPIRIT TRACE — ${l10n.t('traceFieldEvent')}',
+    '${l10n.t('fieldTimeline')}: ${l10n.t(event.type.key)}',
+    '${l10n.t('timeWord')}: ${event.timeLabel}',
+    if (event.durationLabel != null)
+      '${l10n.t('durationLabel')}: ${event.durationLabel}',
+    if (event.strength != null)
+      '${l10n.t('strengthWord')}: ${l10n.t(event.strength!.key)}',
+    if (event.resemblance != null)
+      '${l10n.t('resemblanceWord')}: ${event.resemblance}',
+    l10n.t('shareNote'),
   ];
 
   return showModalBottomSheet<void>(
@@ -201,26 +209,30 @@ Future<void> showShareTrace(BuildContext context, FieldEvent event) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('SPIRIT TRACE', style: text.titleMedium),
-                Text('TRACE FIELD EVENT',
+                Text(l10n.t('traceFieldEvent'),
                     style: text.labelSmall
                         ?.copyWith(color: appColors.glowSecondary)),
                 const SizedBox(height: AppTheme.spacingLg),
-                Text(event.type.label,
+                Text(l10n.t(event.type.key),
                     style: text.headlineSmall?.copyWith(color: colors.primary)),
                 const SizedBox(height: AppTheme.spacingSm),
-                Text('TIME  ${event.timeLabel}', style: text.bodySmall),
+                Text('${l10n.t('timeWord')}  ${event.timeLabel}',
+                    style: text.bodySmall),
                 if (event.durationLabel != null)
-                  Text('DURATION  ${event.durationLabel}',
+                  Text(
+                      '${l10n.t('durationLabel')}  ${event.durationLabel}',
                       style: text.bodySmall),
                 if (event.strength != null)
-                  Text('FORMATION STRENGTH  ${event.strength!.label}',
+                  Text(
+                      '${l10n.t('strengthWord')}  ${l10n.t(event.strength!.key)}',
                       style: text.bodySmall),
                 if (event.resemblance != null)
-                  Text('PATTERN RESEMBLANCE  ${event.resemblance}',
+                  Text(
+                      '${l10n.t('resemblanceWord')}  ${event.resemblance}',
                       style: text.bodySmall),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(
-                  'A recorded change within the Field. Not scientifically verified.',
+                  l10n.t('shareNote'),
                   style: text.labelSmall?.copyWith(
                     color: appColors.subtleText,
                     fontStyle: FontStyle.italic,
@@ -231,17 +243,16 @@ Future<void> showShareTrace(BuildContext context, FieldEvent event) {
           ),
           const SizedBox(height: AppTheme.spacingLg),
           AppButton(
-            label: 'COPY EVENT DETAILS',
+            label: l10n.t('copyEventDetails'),
             icon: Icons.copy_all,
             onPressed: () async {
-              await Clipboard.setData(
-                  ClipboardData(text: lines.join('\n')));
+              await Clipboard.setData(ClipboardData(text: lines.join('\n')));
               if (ctx.mounted) Navigator.pop(ctx);
             },
           ),
           const SizedBox(height: AppTheme.spacingSm),
           AppButton(
-            label: 'CLOSE',
+            label: l10n.t('close'),
             variant: AppButtonVariant.outline,
             onPressed: () => Navigator.pop(ctx),
           ),

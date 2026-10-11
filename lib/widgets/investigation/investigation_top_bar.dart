@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme.dart';
 
 class InvestigationTopBar extends StatelessWidget {
@@ -33,6 +34,7 @@ class InvestigationTopBar extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -45,7 +47,7 @@ class InvestigationTopBar extends StatelessWidget {
             children: [
               _Toggle(
                 icon: blindMode ? Icons.visibility_off : Icons.visibility,
-                label: 'BLIND',
+                label: l10n.t('blind'),
                 active: blindMode,
                 activeColor: appColors.warning,
                 onTap: onToggleBlind,
@@ -54,7 +56,7 @@ class InvestigationTopBar extends StatelessWidget {
               const SizedBox(width: AppTheme.spacingSm),
               _Toggle(
                 icon: Icons.science_outlined,
-                label: 'SKEPTIC',
+                label: l10n.t('skeptic'),
                 active: skepticMode,
                 activeColor: colors.secondary,
                 onTap: onToggleSkeptic,
@@ -72,7 +74,7 @@ class InvestigationTopBar extends StatelessWidget {
                         .withValues(alpha: AppTheme.opacitySubtle),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
-                  child: Text('MIC UNAVAILABLE',
+                  child: Text(l10n.t('micUnavailable'),
                       style:
                           text.labelSmall?.copyWith(color: appColors.danger)),
                 ),
@@ -81,7 +83,7 @@ class InvestigationTopBar extends StatelessWidget {
                   onPressed: onStop,
                   icon: Icon(Icons.stop_circle,
                       color: appColors.danger, size: AppTheme.iconMd),
-                  label: Text('STOP',
+                  label: Text(l10n.t('stop'),
                       style:
                           text.labelMedium?.copyWith(color: appColors.danger)),
                 )
@@ -100,12 +102,12 @@ class InvestigationTopBar extends StatelessWidget {
                 children: [
                   if (skepticMode)
                     _ActiveBadge(
-                      label: 'SKEPTIC MODE ACTIVE',
+                      label: l10n.t('skepticActive'),
                       color: colors.secondary,
                     ),
                   if (blindMode)
                     _ActiveBadge(
-                      label: 'BLIND MODE ACTIVE',
+                      label: l10n.t('blindActive'),
                       color: appColors.warning,
                     ),
                 ],
@@ -136,6 +138,7 @@ class _ActiveBadge extends StatelessWidget {
   }
 }
 
+/// Renders one mode toggle plus its information button.
 class _Toggle extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -190,8 +193,11 @@ class _Toggle extends StatelessWidget {
               children: [
                 Icon(icon, size: AppTheme.iconSm, color: color),
                 const SizedBox(width: AppTheme.spacingXs),
-                Text('$label ${active ? 'ON' : 'OFF'}',
-                    style: text.labelSmall?.copyWith(color: color)),
+                Text(
+                  '$label · '
+                  '${context.l10n.t(active ? 'onLabel' : 'offLabel')}',
+                  style: text.labelSmall?.copyWith(color: color),
+                ),
               ],
             ),
           ),

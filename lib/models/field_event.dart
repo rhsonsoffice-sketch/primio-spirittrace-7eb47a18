@@ -5,16 +5,17 @@ import 'package:uuid/uuid.dart';
 enum FieldEventType { disturbance, unclassified, formation, pulse }
 
 extension FieldEventTypeLabel on FieldEventType {
-  String get label {
+  /// Translation key resolved in the UI layer.
+  String get key {
     switch (this) {
       case FieldEventType.disturbance:
-        return 'FIELD DISTURBANCE';
+        return 'fet_disturbance';
       case FieldEventType.unclassified:
-        return 'UNCLASSIFIED EVENT';
+        return 'fet_unclassified';
       case FieldEventType.formation:
-        return 'POSSIBLE FORMATION';
+        return 'fet_formation';
       case FieldEventType.pulse:
-        return 'TRACE PULSE';
+        return 'fet_pulse';
     }
   }
 }
@@ -22,14 +23,14 @@ extension FieldEventTypeLabel on FieldEventType {
 enum FieldEventStatus { unreviewed, marked, dismissed }
 
 extension FieldEventStatusLabel on FieldEventStatus {
-  String get label {
+  String get key {
     switch (this) {
       case FieldEventStatus.unreviewed:
-        return 'UNREVIEWED';
+        return 'st_unreviewed';
       case FieldEventStatus.marked:
-        return 'MARKED';
+        return 'markedWord';
       case FieldEventStatus.dismissed:
-        return 'DISMISSED';
+        return 'dismissedWord';
     }
   }
 }
@@ -37,14 +38,14 @@ extension FieldEventStatusLabel on FieldEventStatus {
 enum FormationStrength { low, medium, high }
 
 extension FormationStrengthLabel on FormationStrength {
-  String get label {
+  String get key {
     switch (this) {
       case FormationStrength.low:
-        return 'LOW';
+        return 'fs_low';
       case FormationStrength.medium:
-        return 'MEDIUM';
+        return 'fs_medium';
       case FormationStrength.high:
-        return 'HIGH';
+        return 'fs_high';
     }
   }
 }

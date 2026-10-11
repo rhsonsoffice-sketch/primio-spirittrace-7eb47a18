@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/investigation.dart';
 import '../../theme/theme.dart';
 import '../common/app_button.dart';
@@ -24,35 +25,38 @@ Widget _sheetShell(BuildContext ctx, List<Widget> children) => Padding(
 Future<String?> showQuestionSheet(
   BuildContext context, {
   String? prefill,
-  String title = 'ASK A QUESTION',
-  String actionLabel = 'START LISTENING',
+  String titleKey = 'askAQuestion',
+  String actionKey = 'startListening',
 }) {
   final controller = TextEditingController(text: prefill);
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    builder: (ctx) => _sheetShell(ctx, [
-      Text(title, style: Theme.of(ctx).textTheme.titleLarge),
-      const SizedBox(height: AppTheme.spacingMd),
-      TextField(
-        controller: controller,
-        autofocus: true,
-        maxLines: 3,
-        minLines: 1,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(hintText: 'Type your question...'),
-      ),
-      const SizedBox(height: AppTheme.spacingMd),
-      AppButton(
-        label: actionLabel,
-        icon: Icons.mic,
-        onPressed: () {
-          final q = controller.text.trim();
-          if (q.isEmpty) return;
-          Navigator.pop(ctx, q);
-        },
-      ),
-    ]),
+    builder: (ctx) {
+      final l10n = ctx.l10n;
+      return _sheetShell(ctx, [
+        Text(l10n.t(titleKey), style: Theme.of(ctx).textTheme.titleLarge),
+        const SizedBox(height: AppTheme.spacingMd),
+        TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          minLines: 1,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: l10n.t('questionHint')),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        AppButton(
+          label: l10n.t(actionKey),
+          icon: Icons.mic,
+          onPressed: () {
+            final q = controller.text.trim();
+            if (q.isEmpty) return;
+            Navigator.pop(ctx, q);
+          },
+        ),
+      ]);
+    },
   );
 }
 
@@ -62,29 +66,30 @@ Future<String?> showNoteSheet(BuildContext context, {String? initial}) {
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    builder: (ctx) => _sheetShell(ctx, [
-      Text('INVESTIGATION NOTE', style: Theme.of(ctx).textTheme.titleLarge),
-      const SizedBox(height: AppTheme.spacingSm),
-      Text(
-        'Record anything you observed, e.g. a car passing or a knock in the hallway.',
-        style: Theme.of(ctx).textTheme.bodySmall,
-      ),
-      const SizedBox(height: AppTheme.spacingMd),
-      TextField(
-        controller: controller,
-        autofocus: true,
-        minLines: 2,
-        maxLines: 5,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(hintText: 'Add a note...'),
-      ),
-      const SizedBox(height: AppTheme.spacingMd),
-      AppButton(
-        label: 'SAVE NOTE',
-        icon: Icons.check,
-        onPressed: () => Navigator.pop(ctx, controller.text),
-      ),
-    ]),
+    builder: (ctx) {
+      final l10n = ctx.l10n;
+      return _sheetShell(ctx, [
+        Text(l10n.t('investigationNote'),
+            style: Theme.of(ctx).textTheme.titleLarge),
+        const SizedBox(height: AppTheme.spacingSm),
+        Text(l10n.t('noteBody'), style: Theme.of(ctx).textTheme.bodySmall),
+        const SizedBox(height: AppTheme.spacingMd),
+        TextField(
+          controller: controller,
+          autofocus: true,
+          minLines: 2,
+          maxLines: 5,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: l10n.t('noteHint')),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        AppButton(
+          label: l10n.t('saveNote'),
+          icon: Icons.check,
+          onPressed: () => Navigator.pop(ctx, controller.text),
+        ),
+      ]);
+    },
   );
 }
 
@@ -99,22 +104,24 @@ Future<ResponseStatus?> showStatusSheet(
     builder: (ctx) {
       final text = Theme.of(ctx).textTheme;
       final colors = Theme.of(ctx).colorScheme;
+      final l10n = ctx.l10n;
       return _sheetShell(ctx, [
-        Text('MARK THIS EVENT', style: text.titleLarge),
+        Text(l10n.t('markEventTitle'), style: text.titleLarge),
         const SizedBox(height: AppTheme.spacingSm),
-        Text(
-          'Marked events stay in the investigation record.',
-          style: text.bodySmall,
-        ),
+        Text(l10n.t('markEventBody'), style: text.bodySmall),
         const SizedBox(height: AppTheme.spacingMd),
-        ...ResponseStatus.values.where((s) => s != ResponseStatus.unreviewed).map(
+        ...ResponseStatus.values
+            .where((s) => s != ResponseStatus.unreviewed)
+            .map(
               (s) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
-                  s == current ? Icons.radio_button_checked : Icons.radio_button_off,
+                  s == current
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
                   color: s == current ? colors.primary : colors.outline,
                 ),
-                title: Text(s.label, style: text.bodyMedium),
+                title: Text(l10n.label('st', s), style: text.bodyMedium),
                 onTap: () => Navigator.pop(ctx, s),
               ),
             ),
@@ -137,11 +144,12 @@ Future<void> showOccurrencesSheet(
     builder: (ctx) {
       final text = Theme.of(ctx).textTheme;
       final appColors = Theme.of(ctx).extension<AppColorsExtension>()!;
+      final l10n = ctx.l10n;
       return _sheetShell(ctx, [
-        Text('POSSIBLE RESPONSE CLUSTER', style: text.labelMedium),
+        Text(l10n.t('responseCluster'), style: text.labelMedium),
         const SizedBox(height: AppTheme.spacingXs),
         Text('"${pattern.word}"', style: text.headlineSmall),
-        Text('${pattern.count} occurrences',
+        Text('${pattern.count} ${l10n.t('occurrences')}',
             style: text.bodySmall?.copyWith(color: appColors.subtleText)),
         const SizedBox(height: AppTheme.spacingMd),
         ConstrainedBox(
@@ -190,8 +198,7 @@ Future<void> showOccurrencesSheet(
         ),
         const SizedBox(height: AppTheme.spacingSm),
         Text(
-          'Grouped by word similarity. This does not show that the same source '
-          'produced each occurrence.',
+          l10n.t('clusterNote'),
           style: text.labelSmall?.copyWith(
             color: appColors.subtleText,
             fontStyle: FontStyle.italic,
@@ -217,6 +224,7 @@ Future<void> showComparisonSheet(
     builder: (ctx) {
       final text = Theme.of(ctx).textTheme;
       final appColors = Theme.of(ctx).extension<AppColorsExtension>()!;
+      final l10n = ctx.l10n;
       final color = result == RepeatComparison.repeated
           ? appColors.success
           : result == RepeatComparison.similar
@@ -234,7 +242,8 @@ Future<void> showComparisonSheet(
                 children: [
                   Expanded(
                     child: Text(
-                      (r.detectedResponse ?? 'NO CLEAR RESPONSE').toUpperCase(),
+                      (r.detectedResponse ?? l10n.t('noClearResponse'))
+                          .toUpperCase(),
                       style: text.titleMedium,
                     ),
                   ),
@@ -251,11 +260,11 @@ Future<void> showComparisonSheet(
           );
 
       return _sheetShell(ctx, [
-        Text('RESPONSE COMPARISON', style: text.titleLarge),
+        Text(l10n.t('responseComparison'), style: text.titleLarge),
         const SizedBox(height: AppTheme.spacingMd),
-        block('FIRST RESPONSE', first),
+        block(l10n.t('firstResponse'), first),
         const SizedBox(height: AppTheme.spacingMd),
-        block('SECOND RESPONSE', second),
+        block(l10n.t('secondResponse'), second),
         const SizedBox(height: AppTheme.spacingMd),
         Container(
           width: double.infinity,
@@ -264,13 +273,14 @@ Future<void> showComparisonSheet(
             color: color.withValues(alpha: AppTheme.opacitySubtle),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
-          child: Text('RESULT: ${result.label}',
-              style: text.labelLarge?.copyWith(color: color)),
+          child: Text(
+            '${l10n.t('resultLabel')}: ${l10n.label('rc', result)}',
+            style: text.labelLarge?.copyWith(color: color),
+          ),
         ),
         const SizedBox(height: AppTheme.spacingSm),
         Text(
-          'A repeated result is an observation about the recorded audio, not '
-          'scientific proof.',
+          l10n.t('repeatNote'),
           style: text.labelSmall?.copyWith(
             color: appColors.subtleText,
             fontStyle: FontStyle.italic,
@@ -288,8 +298,9 @@ Future<void> showCaseFileSheet(BuildContext context, String report) {
     isScrollControlled: true,
     builder: (ctx) {
       final text = Theme.of(ctx).textTheme;
+      final l10n = ctx.l10n;
       return _sheetShell(ctx, [
-        Text('CASE FILE', style: text.titleLarge),
+        Text(l10n.t('caseFile'), style: text.titleLarge),
         const SizedBox(height: AppTheme.spacingMd),
         ConstrainedBox(
           constraints: BoxConstraints(
@@ -301,7 +312,7 @@ Future<void> showCaseFileSheet(BuildContext context, String report) {
         ),
         const SizedBox(height: AppTheme.spacingMd),
         AppButton(
-          label: 'COPY REPORT',
+          label: l10n.t('copyReport'),
           icon: Icons.copy_all,
           onPressed: () {
             Clipboard.setData(ClipboardData(text: report));

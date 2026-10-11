@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/investigation.dart';
 import '../../theme/theme.dart';
 import '../common/app_button.dart';
@@ -28,15 +29,19 @@ class SessionEndedView extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
     final dur = investigation.duration;
     final durStr = '${dur.inMinutes}m ${dur.inSeconds % 60}s';
+    final on = l10n.t('onLabel');
+    final off = l10n.t('offLabel');
 
     Widget row(String label, String value, Color color) => Padding(
           padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: text.bodyMedium),
+              Expanded(child: Text(label, style: text.bodyMedium)),
+              const SizedBox(width: AppTheme.spacingSm),
               Text(value, style: text.titleSmall?.copyWith(color: color)),
             ],
           ),
@@ -46,11 +51,11 @@ class SessionEndedView extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         children: [
-          Text('INVESTIGATION ENDED',
+          Text(l10n.t('investigationEnded'),
               style: text.headlineSmall, textAlign: TextAlign.center),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
-            'Nothing is running. Choose whether to keep this session.',
+            l10n.t('endedBody'),
             style: text.bodySmall?.copyWith(color: appColors.subtleText),
             textAlign: TextAlign.center,
           ),
@@ -58,28 +63,29 @@ class SessionEndedView extends StatelessWidget {
           GlowingCard(
             child: Column(
               children: [
-                row('Duration', durStr, colors.onSurface),
-                row('Questions', '${investigation.questionCount}',
+                row(l10n.t('durationLabel'), durStr, colors.onSurface),
+                row(l10n.t('questions'), '${investigation.questionCount}',
                     colors.onSurface),
-                row('Possible Responses', '${investigation.responseCount}',
-                    appColors.glowSecondary),
-                row('Possible Patterns', '$patternCount', appColors.glow),
-                row('Blind Mode', blindMode ? 'ON' : 'OFF',
+                row(l10n.t('possibleResponsesLbl'),
+                    '${investigation.responseCount}', appColors.glowSecondary),
+                row(l10n.t('possiblePatternsLbl'), '$patternCount',
+                    appColors.glow),
+                row(l10n.t('blindModeLabel'), blindMode ? on : off,
                     blindMode ? appColors.warning : appColors.subtleText),
-                row('Skeptic Mode', skepticMode ? 'ON' : 'OFF',
+                row(l10n.t('skepticModeLabel'), skepticMode ? on : off,
                     skepticMode ? colors.secondary : appColors.subtleText),
               ],
             ),
           ),
           const SizedBox(height: AppTheme.spacingLg),
           AppButton(
-            label: 'SAVE INVESTIGATION',
+            label: l10n.t('saveInvestigation'),
             icon: Icons.save_outlined,
             onPressed: onSave,
           ),
           const SizedBox(height: AppTheme.spacingMd),
           AppButton(
-            label: 'DISCARD',
+            label: l10n.t('discard'),
             icon: Icons.delete_outline,
             variant: AppButtonVariant.outline,
             onPressed: onDiscard,

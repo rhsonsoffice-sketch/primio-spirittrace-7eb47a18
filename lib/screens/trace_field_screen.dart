@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/investigation.dart';
 import '../providers/investigation_provider.dart';
+import '../providers/pro_provider.dart';
 import '../providers/trace_field_provider.dart';
+import 'pro_screen.dart';
 import '../theme/theme.dart';
 import '../widgets/common/app_button.dart';
 import '../widgets/trace_field/field_event_card.dart';
@@ -52,6 +55,21 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
     showFormationReplay(context, event: e, frames: frames);
   }
 
+  /// Resolves the status detail line: a plain value, the pulse summary built
+  /// from the recorded counters, or a translated key.
+  String _detail(AppLocalizations l10n, TraceFieldProvider field) {
+    final raw = field.statusDetailText;
+    if (raw != null) return raw;
+    final key = field.statusDetailKey;
+    if (key == null) return '';
+    if (key == 'pulseSummary') {
+      return '${field.lastPulseDisturbances} ${l10n.t('disturbancesWord')} · '
+          '${field.lastPulseUnclassified} ${l10n.t('unclassifiedWord')} · '
+          '${field.lastPulseFormations} ${l10n.t('formationsWord')}';
+    }
+    return l10n.t(key);
+  }
+
   @override
   Widget build(BuildContext context) {
     final field = context.watch<TraceFieldProvider>();
@@ -59,9 +77,11 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     final blindActive = inv.blindMode && !field.revealed;
     final latest = field.latestEvent;
+    final title = l10n.t(field.statusTitleKey);
 
     return PopScope(
       canPop: false,
@@ -91,7 +111,7 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                               color: appColors.subtleText),
                         ),
                         Expanded(
-                          child: Text('TRACE FIELD',
+                          child: Text(l10n.t('traceField'),
                               textAlign: TextAlign.center,
                               style: text.titleMedium),
                         ),
@@ -111,8 +131,9 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 320),
                           child: Text(
-                            field.statusTitle,
-                            key: ValueKey(field.statusTitle),
+                            title,
+                            key: ValueKey(title),
+                            textAlign: TextAlign.center,
                             style: text.titleLarge?.copyWith(
                               color: field.formationVisible
                                   ? colors.primary
@@ -122,7 +143,7 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                         ),
                         const SizedBox(height: AppTheme.spacingXs),
                         Text(
-                          field.statusDetail,
+                          _detail(l10n, field),
                           textAlign: TextAlign.center,
                           style: text.bodySmall
                               ?.copyWith(color: appColors.subtleText),
@@ -153,7 +174,8 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                             padding:
                                 const EdgeInsets.only(top: AppTheme.spacingXs),
                             child: Text(
-                              'MOTION SENSOR UNAVAILABLE — AUDIO INPUT ONLY',
+                              l10n.t('motionUnavailable'),
+                              textAlign: TextAlign.center,
                               style: text.labelSmall
                                   ?.copyWith(color: appColors.warning),
                             ),
@@ -162,7 +184,8 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                           Padding(
                             padding:
                                 const EdgeInsets.only(top: AppTheme.spacingXs),
-                            child: Text('BLIND MODE ACTIVE',
+                            child: Text(l10n.t('blindActive'),
+                                textAlign: TextAlign.center,
                                 style: text.labelSmall
                                     ?.copyWith(color: appColors.warning)),
                           ),
@@ -170,7 +193,7 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                     ),
                   ),
                   const Spacer(),
-                  if (field.prompt != null && !field.formationVisible)
+                  if (field.promptKey != null && !field.formationVisible)
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: AppTheme.spacingLg),
@@ -185,7 +208,7 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                             borderRadius:
                                 BorderRadius.circular(AppTheme.radiusSmall),
                           ),
-                          child: Text(field.prompt!,
+                          child: Text(l10n.t(field.promptKey!),
                               textAlign: TextAlign.center,
                               style: text.bodySmall),
                         ),
@@ -207,9 +230,8 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                           HapticFeedback.selectionClick();
                         },
                         onDismiss: () => field.dismissEvent(latest.id),
-                        onReplay: latest.isFormation
-                            ? () => _replay(latest)
-                            : null,
+                        onReplay:
+                            latest.isFormation ? () => _replay(latest) : null,
                         onShare: () => showShareTrace(context, latest),
                         onClose: field.clearLatest,
                       ),
@@ -223,7 +245,7 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                             padding: const EdgeInsets.only(
                                 bottom: AppTheme.spacingSm),
                             child: AppButton(
-                              label: 'REVEAL TRACE',
+                              label: l10n.t('revealTrace'),
                               icon: Icons.lock_open,
                               variant: AppButtonVariant.secondary,
                               onPressed: field.revealTrace,
@@ -231,12 +253,15 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                           ),
                         AppButton(
                           label: field.pulseActive
-                              ? 'PULSE ${field.pulseRemaining}s'
-                              : 'PULSE',
-                          icon: Icons.radio_button_checked,
+                              ? '${l10n.t('pulseBtn')} ${field.pulseRemaining}s'
+                              : l10n.t('pulseBtn'),
+                          icon: context.watch<ProProvider>().isPro
+                              ? Icons.radio_button_checked
+                              : Icons.lock_outline,
                           pulse: !field.pulseActive,
-                          onPressed:
-                              field.state == FieldState.monitoring &&
+                          onPressed: !context.watch<ProProvider>().isPro
+                              ? () => openProScreen(context)
+                              : field.state == FieldState.monitoring &&
                                       !field.pulseActive
                                   ? () {
                                       field.startPulse();
@@ -246,7 +271,8 @@ class _TraceFieldScreenState extends State<TraceFieldScreen> {
                         ),
                         const SizedBox(height: AppTheme.spacingSm),
                         AppButton(
-                          label: 'FIELD TIMELINE (${field.events.length})',
+                          label:
+                              '${l10n.t('fieldTimelineBtn')} (${field.events.length})',
                           icon: Icons.timeline,
                           variant: AppButtonVariant.outline,
                           onPressed: () => showFieldTimeline(

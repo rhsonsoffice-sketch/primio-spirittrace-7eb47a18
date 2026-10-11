@@ -43,7 +43,16 @@ A paranormal investigation tool that uses real microphone input and speech recog
 - The Field animates from a Timer-driven engine tick that increments a ValueNotifier the painter repaints from — the widget tree is not rebuilt per frame
 - Formation replay frames are session-only (in-memory rolling buffer); persisted field events keep metadata only
 
+## Spirit Trace Pro (in-app purchase)
+- One non-consumable lifetime product `com.spirittrace.pro` via in_app_purchase (StoreKit 2); price always comes from the App Store product, never code
+- in_app_purchase pinned at ^3.2.3: newer releases need Flutter 3.38. The store is wired for iOS only; web preview and Android show "available in the iOS app" (Android needs a Flutter upgrade for Play Billing 8 first)
+- ProProvider is app-global (main.dart) so the purchase stream is listened to from launch; Pro grants only on purchased/restored stream events, never on a tap or pending/cancelled/error
+- The SharedPreferences flag is only an offline cache; every launch runs restorePurchases (StoreKit 2 current entitlements) and revokes only after a successful refresh that lacks the product
+- No receipt server: entitlement trusts StoreKit's result — fraud-resistant verification would need a backend
+- Pro gates: Trace Memory panel, Pattern/Connections cards, Repeat Test action, Trace Pulse button, case-file export; locks use ProLockCard and openProScreen (Navigator push, so an active investigation survives)
+
 ## Localization
+- Pro strings live in `lib/l10n/app_strings_pro.dart`, merged with the other dictionaries
 - Hand-written Dart dictionaries only — no ARB files, no build_runner, no code generation
 - Adding a language requires exactly two edits: an entry in `lib/l10n/app_locales.dart` and a matching map in `lib/l10n/app_strings.dart`; every other file resolves keys dynamically
 - Missing keys silently fall back to English, so a partially translated dictionary can never produce blank UI

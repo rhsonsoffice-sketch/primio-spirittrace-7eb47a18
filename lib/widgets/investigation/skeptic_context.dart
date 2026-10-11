@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/investigation.dart';
 import '../../theme/theme.dart';
 
@@ -18,56 +19,23 @@ class SkepticContext extends StatelessWidget {
     this.recurring = false,
   });
 
-  List<String> _considerations() {
-    final points = <String>[];
+  List<String> _considerationKeys() {
+    final keys = <String>[];
 
     if (!response.confidenceAvailable) {
-      points.add(
-        'Insufficient information — no recogniser confidence was reported for '
-        'this event.',
-      );
+      keys.add('sk1');
     } else if ((response.confidence ?? 0) < 0.6) {
-      points.add(
-        'Low recogniser confidence — the wording may not match what was said.',
-      );
+      keys.add('sk2');
     }
-
-    if (response.isUncertain || !response.hasResponse) {
-      points.add(
-        'Unusual / anomalous result — audio was captured but no reliable wording '
-        'could be established.',
-      );
-    }
-
-    if (environmentalChange) {
-      points.add(
-        'Environmental noise / interference — the audio level differs from the '
-        'recorded baseline.',
-      );
-    }
-
-    if (recurring) {
-      points.add(
-        'Possible coincidence — common words recur naturally in speech and in '
-        'background audio.',
-      );
-    }
+    if (response.isUncertain || !response.hasResponse) keys.add('sk3');
+    if (environmentalChange) keys.add('sk4');
+    if (recurring) keys.add('sk5');
 
     final latency = response.responseLatencyMs;
-    if (latency != null && latency < 700) {
-      points.add(
-        'Possible random response — the event began very soon after the question '
-        'ended and may overlap with it.',
-      );
-    }
+    if (latency != null && latency < 700) keys.add('sk6');
 
-    if (points.isEmpty) {
-      points.add(
-        'Consider repeating this question before attaching any significance to '
-        'the result.',
-      );
-    }
-    return points;
+    if (keys.isEmpty) keys.add('sk7');
+    return keys;
   }
 
   @override
@@ -75,7 +43,7 @@ class SkepticContext extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    final points = _considerations();
+    final l10n = context.l10n;
 
     return Container(
       width: double.infinity,
@@ -97,16 +65,18 @@ class SkepticContext extends StatelessWidget {
               Icon(Icons.science_outlined,
                   size: AppTheme.iconSm, color: colors.secondary),
               const SizedBox(width: AppTheme.spacingXs),
-              Text('CONSIDER OTHER EXPLANATIONS',
-                  style: text.labelSmall?.copyWith(color: colors.secondary)),
+              Expanded(
+                child: Text(l10n.t('considerOther'),
+                    style: text.labelSmall?.copyWith(color: colors.secondary)),
+              ),
             ],
           ),
           const SizedBox(height: AppTheme.spacingXs),
-          ...points.map(
-            (p) => Padding(
+          ..._considerationKeys().map(
+            (k) => Padding(
               padding: const EdgeInsets.only(top: AppTheme.spacingXs),
               child: Text(
-                '• $p',
+                '• ${l10n.t(k)}',
                 style: text.bodySmall?.copyWith(color: appColors.subtleText),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/investigation.dart';
 import '../../theme/theme.dart';
 import '../common/glowing_card.dart';
@@ -23,6 +24,7 @@ class PatternCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final l10n = context.l10n;
 
     if (patterns.isEmpty) return const SizedBox.shrink();
     final top = patterns.first;
@@ -38,12 +40,14 @@ class PatternCard extends StatelessWidget {
               Icon(Icons.auto_awesome,
                   size: AppTheme.iconMd, color: appColors.glow),
               const SizedBox(width: AppTheme.spacingSm),
-              Text('PATTERN ANALYSIS',
-                  style: text.labelLarge?.copyWith(color: appColors.glow)),
+              Expanded(
+                child: Text(l10n.t('patternAnalysis'),
+                    style: text.labelLarge?.copyWith(color: appColors.glow)),
+              ),
             ],
           ),
           const SizedBox(height: AppTheme.spacingXs),
-          Text('PATTERN FOUND',
+          Text(l10n.t('patternFound'),
               style: text.labelSmall?.copyWith(color: appColors.subtleText)),
           const SizedBox(height: AppTheme.spacingSm),
           ...patterns.map(
@@ -74,12 +78,13 @@ class PatternCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${p.count} occurrences',
+                          Text('${p.count} ${l10n.t('occurrences')}',
                               style: text.bodySmall
                                   ?.copyWith(color: appColors.subtleText)),
                           if (p.hasVariants)
                             Text(
-                              'Cluster: ${p.variants.join(", ")}',
+                              '${l10n.t('clusterPrefix')}: '
+                              '${p.variants.join(", ")}',
                               style: text.labelSmall
                                   ?.copyWith(color: appColors.subtleText),
                               maxLines: 1,
@@ -111,44 +116,44 @@ class PatternCard extends StatelessWidget {
                 ),
               ),
               child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppTheme.spacingSm),
-              decoration: BoxDecoration(
-                color:
-                    colors.secondary.withValues(alpha: AppTheme.opacitySubtle),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                border: Border.all(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppTheme.spacingSm),
+                decoration: BoxDecoration(
                   color: colors.secondary
                       .withValues(alpha: AppTheme.opacitySubtle),
-                  width: AppTheme.borderDefault,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                  border: Border.all(
+                    color: colors.secondary
+                        .withValues(alpha: AppTheme.opacitySubtle),
+                    width: AppTheme.borderDefault,
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('POSSIBLE CONNECTION',
-                      style:
-                          text.labelSmall?.copyWith(color: colors.secondary)),
-                  const SizedBox(height: AppTheme.spacingXs),
-                  ...connections.take(4).map(
-                        (c) => Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: AppTheme.spacingXs),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('${c.word1} ↔ ${c.word2}',
-                                  style: text.titleMedium
-                                      ?.copyWith(color: colors.secondary)),
-                              Text(c.reason,
-                                  style: text.labelSmall
-                                      ?.copyWith(color: appColors.subtleText)),
-                            ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.t('possibleConnection'),
+                        style:
+                            text.labelSmall?.copyWith(color: colors.secondary)),
+                    const SizedBox(height: AppTheme.spacingXs),
+                    ...connections.take(4).map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.only(
+                                bottom: AppTheme.spacingXs),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${c.word1} ↔ ${c.word2}',
+                                    style: text.titleMedium
+                                        ?.copyWith(color: colors.secondary)),
+                                Text(l10n.t(c.reason),
+                                    style: text.labelSmall?.copyWith(
+                                        color: appColors.subtleText)),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                ],
-              ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -159,7 +164,8 @@ class PatternCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () => onInvestigate!(top),
                 icon: const Icon(Icons.search, size: AppTheme.iconSm),
-                label: const Text('INVESTIGATE CONNECTION'),
+                label: Text(l10n.t('investigateConnection'),
+                    textAlign: TextAlign.center),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: appColors.glow,
                   side: BorderSide(
@@ -173,8 +179,7 @@ class PatternCard extends StatelessWidget {
           ],
           const SizedBox(height: AppTheme.spacingSm),
           Text(
-            'Similarity analysis of recorded audio only. A possible pattern or '
-            'connection is not proof of paranormal communication.',
+            l10n.t('patternNote'),
             style: text.labelSmall?.copyWith(
               color: appColors.subtleText,
               fontStyle: FontStyle.italic,
