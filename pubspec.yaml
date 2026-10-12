@@ -2,7 +2,7 @@ name: primio_app
 description: A Primio-generated Flutter app
 publish_to: 'none'
 
-version: 1.0.0+12
+version: 1.0.6+12
 
 environment:
   sdk: ^3.7.2
